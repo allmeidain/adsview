@@ -33,7 +33,7 @@ function renderizarTotais(campanhas) {
     const titulo = !dataInicio || dataInicio === dataFim ? 'Hoje' : 'Período';
     
     let metricsHTML = `<table class="totals-table"><thead><tr>
-        <th>Moeda</th><th>Custo Total (<span class="math-inline">\{titulo\}\)</th\><th\>Valor Total de Conv\. \(</span>{titulo})</th><th>Resultado Total (<span class="math-inline">\{titulo\}\)</th\><th\>ROI Total \(</span>{titulo})</th>
+        <th>Moeda</th><th>Custo Total (${titulo})</th><th>Valor Total de Conv. (${titulo})</th><th>Resultado Total (${titulo})</th><th>ROI Total (${titulo})</th>
     </tr></thead><tbody>`;
 
     for (const moeda in totaisPorMoeda) {
@@ -42,11 +42,11 @@ function renderizarTotais(campanhas) {
         const roiTotal = totais.custo > 0 ? totais.resultado / totais.custo : 0;
         
         metricsHTML += `<tr>
-            <td><span class="math-inline">\{moeda\}</td\>
-<td\></span>{totais.custo.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
+            <td>${moeda}</td>
+            <td>${totais.custo.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
             <td>${totais.valor_conversoes.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
-            <td style="color: <span class="math-inline">\{corResultado\}; font\-weight\: 500;"\></span>{totais.resultado.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
-            <td style="color: <span class="math-inline">\{corResultado\}; font\-weight\: 500;"\></span>{roiTotal.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
+            <td style="color: ${corResultado}; font-weight: 500;">${totais.resultado.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
+            <td style="color: ${corResultado}; font-weight: 500;">${roiTotal.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
         </tr>`;
     }
 
@@ -74,4 +74,176 @@ function renderizarTabela(campanhas) {
             const valorConversoes = (campanha.valor_conversoes || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
             const resultado = (campanha.resultado || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
             const roi = (campanha.roi || 0).toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
-            const corResultado = (campanha.resultado || 0) >= 0 ? '#28a745' :
+            const corResultado = (campanha.resultado || 0) >= 0 ? '#28a745' : '#dc3545';
+
+            tabelaHTML += `<tr>
+                <td><a href="/detalhes.html?id=${campanha.id}">${campanha.id}</a></td><td><a href="/detalhes.html?id=${campanha.id}">${campanha.nome}</a></td>
+                <td>${(campanha.impressoes || 0).toLocaleString('pt-BR')}</td><td>${(campanha.cliques || 0).toLocaleString('pt-BR')}</td><td>${cpcMedio}</td><td>${custo}</td>
+                <td>${(campanha.conversoes || 0).toLocaleString('pt-BR')}</td><td>${valorConversoes}</td><td style="color: ${corResultado}; font-weight: 500;">${resultado}</td><td style="color: ${corResultado}; font-weight: 500;">${roi}</td>
+            </tr>`;
+        });
+    }
+    tabelaHTML += `</tbody></table></div>`;
+    container.innerHTML = tabelaHTML;
+}
+
+function aplicarFiltros() {
+    campanhasSelecionadasIds = Array.from(document.querySelectorAll('#checkboxes-campanhas input:checked')).map(cb => cb.value);
+    moedasSelecionadas = Array.from(document.querySelectorAll('#checkboxes-moedas input:checked')).map(cb => cb.value);
+
+    const campanhasFiltradas = todasCampanhas.filter(c => {
+        const correspondeCampanha = campanhasSelecionadasIds.includes(String(c.id));
+        const correspondeMoeda = moedasSelecionadas.includes(c.codigo_moeda || 'BRL');
+        return correspondeCampanha && correspondeMoeda;
+    });
+    
+    renderizarDashboard(campanhasFiltradas);
+}
+
+function popularFiltro(tipo, campanhas) {
+    const container = document.getElementById(`checkboxes-${tipo}`);
+    if (!container) return;
+    container.innerHTML = '';
+    
+    let itemsUnicos = [];
+    if (tipo === 'campanhas') {
+        itemsUnicos = campanhas;
+    } else if (tipo === 'moedas') {
+        itemsUnicos = [...new Set(campanhas.map(c => c.codigo_moeda || 'BRL'))];
+    }
+
+    itemsUnicos.forEach(item => {
+        const id = tipo === 'campanhas' ? item.id : item;
+        const nome = tipo === 'campanhas' ? item.nome : item;
+        const listaSelecao = tipo === 'campanhas' ? campanhasSelecionadasIds : moedasSelecionadas;
+        
+        const isChecked = listaSelecao.includes(String(id));
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" value="${id}" ${isChecked ? 'checked' : ''} /> ${nome}`;
+        label.addEventListener('change', aplicarFiltros);
+        container.appendChild(label);
+    });
+}
+
+async function carregarResumo(url) {
+    const container = document.getElementById('resumo-container');
+    container.innerHTML = '<p>Carregando dados...</p>';
+    document.getElementById('header-metrics').innerHTML = '';
+
+    try {
+        const resposta = await fetch(url);
+        if (!resposta.ok) throw new Error(`Erro na API: ${resposta.statusText}`);
+        
+        todasCampanhas = await resposta.json();
+        
+        if (isInitialLoad && todasCampanhas.length > 0) {
+            campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
+            moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
+            isInitialLoad = false;
+        }
+
+        if (!Array.isArray(todasCampanhas) || todasCampanhas.length === 0) {
+            renderizarDashboard([]);
+            popularFiltro('campanhas', []);
+            popularFiltro('moedas', []);
+            return;
+        }
+
+        popularFiltro('campanhas', todasCampanhas);
+        popularFiltro('moedas', todasCampanhas);
+        aplicarFiltros();
+
+    } catch (erro) {
+        container.innerHTML = `<p>Ocorreu um erro ao carregar o resumo. Verifique o console.</p>`;
+        console.error("Falha ao carregar o resumo:", erro);
+    }
+}
+
+function toggleCheckboxes(tipo) {
+    const checkboxes = document.getElementById(`checkboxes-${tipo}`);
+    if(!checkboxes) return;
+
+    const outroTipo = tipo === 'campanhas' ? 'moedas' : 'campanhas';
+    const outroCheckbox = document.getElementById(`checkboxes-${outroTipo}`);
+    if (outroCheckbox) {
+        outroCheckbox.style.display = 'none';
+        expanded[outroTipo] = false;
+    }
+    
+    expanded[tipo] = !expanded[tipo];
+    checkboxes.style.display = expanded[tipo] ? "block" : "none";
+}
+
+function exportarParaCSV(headers, dataRows, filename) {
+    let csvContent = headers.join(',') + '\r\n';
+    dataRows.forEach(rowArray => {
+        const row = rowArray.map(field => {
+            let f = String(field === null || field === undefined ? '' : field).replace(/"/g, '""');
+            return `"${f}"`;
+        });
+        csvContent += row.join(',') + '\r\n';
+    });
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+// --- INICIALIZAÇÃO DA PÁGINA ---
+document.addEventListener('DOMContentLoaded', () => {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const hojeFormatadoLocal = `${ano}-${mes}-${dia}`;
+    document.getElementById('data-inicio').value = hojeFormatadoLocal;
+    document.getElementById('data-fim').value = hojeFormatadoLocal;
+
+    const urlInicial = `/api/resumo?inicio=${hojeFormatadoLocal}&fim=${hojeFormatadoLocal}`;
+    carregarResumo(urlInicial);
+
+    document.getElementById('btn-filtrar').addEventListener('click', () => {
+        const inicio = document.getElementById('data-inicio').value;
+        const fim = document.getElementById('data-fim').value;
+        if (inicio && fim) {
+            const url = `/api/resumo?inicio=${inicio}&fim=${fim}`;
+            carregarResumo(url);
+        }
+    });
+
+    document.getElementById('btn-exportar-csv').addEventListener('click', () => {
+        if (dadosAtuaisDaTabela.length === 0) {
+            alert("Não há dados para exportar com os filtros atuais.");
+            return;
+        }
+        const headers = ["ID Campanha", "Nome Campanha", "Moeda", "Impressoes", "Cliques", "Custo", "Conversoes", "Valor Conversoes", "Resultado", "ROI"];
+        const dataRows = dadosAtuaisDaTabela.map(c => [
+            c.id, c.nome, c.codigo_moeda || 'BRL',
+            c.impressoes || 0, c.cliques || 0,
+            c.custo || 0, c.conversoes || 0,
+            c.valor_conversoes || 0, c.resultado || 0,
+            (c.roi || 0).toFixed(4)
+        ]);
+        const dataHoje = new Date().toISOString().slice(0, 10);
+        exportarParaCSV(headers, dataRows, `resumo_campanhas_${dataHoje}.csv`);
+    });
+
+    document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+        if (todasCampanhas.length === 0) return;
+
+        campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
+        moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
+
+        popularFiltro('campanhas', todasCampanhas);
+        popularFiltro('moedas', todasCampanhas);
+
+        aplicarFiltros();
+    });
+});
