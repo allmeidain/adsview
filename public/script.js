@@ -8,13 +8,13 @@ let expanded = { campanhas: false, moedas: false };
 
 // --- FUNÇÕES DE LÓGICA E RENDERIZAÇÃO ---
 
-function renderizarDashboard(campanhasParaRenderizar) {
+function renderizarDashboard(campanhasParaRenderizar, cotacao) {
     dadosAtuaisDaTabela = campanhasParaRenderizar;
-    renderizarTotais(campanhasParaRenderizar);
-    renderizarTabela(campanhasParaRenderizar);
+    renderizarTotais(dadosAtuaisDaTabela, cotacao);
+    renderizarTabela(dadosAtuaisDaTabela);
 }
 
-function renderizarTotais(campanhas) {
+function renderizarTotais(campanhas, cotacao) {
     const metricsContainer = document.getElementById('header-metrics');
     const totaisPorMoeda = {};
 
@@ -47,6 +47,23 @@ function renderizarTotais(campanhas) {
             <td>${totais.valor_conversoes.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
             <td style="color: ${corResultado}; font-weight: 500;">${totais.resultado.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
             <td style="color: ${corResultado}; font-weight: 500;">${roiTotal.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
+        </tr>`;
+    }
+
+    if (cotacao && cotacao.rates && cotacao.rates.BRL && totaisPorMoeda['USD'] && totaisPorMoeda['BRL']) {
+        const taxaCambio = cotacao.rates.BRL;
+        let custoConsolidado = (totaisPorMoeda['BRL']?.custo || 0) + ((totaisPorMoeda['USD']?.custo || 0) * taxaCambio);
+        let valorConsolidado = (totaisPorMoeda['BRL']?.valor_conversoes || 0) + ((totaisPorMoeda['USD']?.valor_conversoes || 0) * taxaCambio);
+        const resultadoConsolidado = valorConsolidado - custoConsolidado;
+        const roiConsolidado = custoConsolidado > 0 ? resultadoConsolidado / custoConsolidado : 0;
+        const corResultadoConsolidado = resultadoConsolidado >= 0 ? '#28a745' : '#dc3545';
+        
+        metricsHTML += `<tr class="total-consolidado-row">
+            <td>Total (BRL)</td>
+            <td>${custoConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td>${valorConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td style="color: ${corResultadoConsolidado}; font-weight: 500;">${resultadoConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td style="color: ${corResultadoConsolidado}; font-weight: 500;">${roiConsolidado.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
         </tr>`;
     }
 
@@ -87,7 +104,7 @@ function renderizarTabela(campanhas) {
     container.innerHTML = tabelaHTML;
 }
 
-function aplicarFiltros() {
+function aplicarFiltros(cotacao) {
     campanhasSelecionadasIds = Array.from(document.querySelectorAll('#checkboxes-campanhas input:checked')).map(cb => cb.value);
     moedasSelecionadas = Array.from(document.querySelectorAll('#checkboxes-moedas input:checked')).map(cb => cb.value);
 
@@ -97,7 +114,7 @@ function aplicarFiltros() {
         return correspondeCampanha && correspondeMoeda;
     });
     
-    renderizarDashboard(campanhasFiltradas);
+    renderizarDashboard(campanhasFiltradas, cotacao);
 }
 
 function popularFiltro(tipo, campanhas) {
@@ -120,7 +137,7 @@ function popularFiltro(tipo, campanhas) {
         const isChecked = listaSelecao.includes(String(id));
         const label = document.createElement('label');
         label.innerHTML = `<input type="checkbox" value="${id}" ${isChecked ? 'checked' : ''} /> ${nome}`;
-        label.addEventListener('change', aplicarFiltros);
+        label.addEventListener('change', () => aplicarFiltros(JSON.parse(sessionStorage.getItem('cotacao'))));
         container.appendChild(label);
     });
 }
@@ -131,10 +148,17 @@ async function carregarResumo(url) {
     document.getElementById('header-metrics').innerHTML = '';
 
     try {
-        const resposta = await fetch(url);
-        if (!resposta.ok) throw new Error(`Erro na API: ${resposta.statusText}`);
+        const [respostaCampanhas, respostaCotacao] = await Promise.all([
+            fetch(url),
+            fetch('/api/cotacao')
+        ]);
+
+        if (!respostaCampanhas.ok) throw new Error(`Erro na API de campanhas: ${respostaCampanhas.statusText}`);
+        if (!respostaCotacao.ok) throw new Error(`Erro na API de cotação: ${respostaCotacao.statusText}`);
         
-        todasCampanhas = await resposta.json();
+        todasCampanhas = await respostaCampanhas.json();
+        const cotacao = await respostaCotacao.json();
+        sessionStorage.setItem('cotacao', JSON.stringify(cotacao)); // Guarda a cotação na sessão
         
         if (isInitialLoad && todasCampanhas.length > 0) {
             campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
@@ -143,7 +167,7 @@ async function carregarResumo(url) {
         }
 
         if (!Array.isArray(todasCampanhas) || todasCampanhas.length === 0) {
-            renderizarDashboard([]);
+            renderizarDashboard([], null);
             popularFiltro('campanhas', []);
             popularFiltro('moedas', []);
             return;
@@ -151,7 +175,7 @@ async function carregarResumo(url) {
 
         popularFiltro('campanhas', todasCampanhas);
         popularFiltro('moedas', todasCampanhas);
-        aplicarFiltros();
+        aplicarFiltros(cotacao);
 
     } catch (erro) {
         container.innerHTML = `<p>Ocorreu um erro ao carregar o resumo. Verifique o console.</p>`;
@@ -162,17 +186,56 @@ async function carregarResumo(url) {
 function toggleCheckboxes(tipo) {
     const checkboxes = document.getElementById(`checkboxes-${tipo}`);
     if(!checkboxes) return;
-
     const outroTipo = tipo === 'campanhas' ? 'moedas' : 'campanhas';
     const outroCheckbox = document.getElementById(`checkboxes-${outroTipo}`);
     if (outroCheckbox) {
         outroCheckbox.style.display = 'none';
         expanded[outroTipo] = false;
     }
-    
     expanded[tipo] = !expanded[tipo];
     checkboxes.style.display = expanded[tipo] ? "block" : "none";
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const hojeFormatadoLocal = `${ano}-${mes}-${dia}`;
+    document.getElementById('data-inicio').value = hojeFormatadoLocal;
+    document.getElementById('data-fim').value = hojeFormatadoLocal;
+
+    const urlInicial = `/api/resumo?inicio=${hojeFormatadoLocal}&fim=${hojeFormatadoLocal}`;
+    carregarResumo(urlInicial);
+
+    document.getElementById('btn-filtrar').addEventListener('click', () => {
+        const url = `/api/resumo?inicio=${document.getElementById('data-inicio').value}&fim=${document.getElementById('data-fim').value}`;
+        carregarResumo(url);
+    });
+
+    document.getElementById('btn-exportar-csv').addEventListener('click', () => {
+        if (dadosAtuaisDaTabela.length === 0) {
+            alert("Não há dados para exportar com os filtros atuais."); return;
+        }
+        const headers = ["ID Campanha", "Nome Campanha", "Moeda", "Impressoes", "Cliques", "Custo", "Conversoes", "Valor Conversoes", "Resultado", "ROI"];
+        const dataRows = dadosAtuaisDaTabela.map(c => [
+            c.id, c.nome, c.codigo_moeda || 'BRL',
+            c.impressoes || 0, c.cliques || 0, c.custo || 0, c.conversoes || 0,
+            c.valor_conversoes || 0, c.resultado || 0, (c.roi || 0).toFixed(4)
+        ]);
+        const dataHoje = new Date().toISOString().slice(0, 10);
+        exportarParaCSV(headers, dataRows, `resumo_campanhas_${dataHoje}.csv`);
+    });
+
+    document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+        if (todasCampanhas.length === 0) return;
+        campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
+        moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
+        popularFiltro('campanhas', todasCampanhas);
+        popularFiltro('moedas', todasCampanhas);
+        aplicarFiltros(JSON.parse(sessionStorage.getItem('cotacao')));
+    });
+});
 
 function exportarParaCSV(headers, dataRows, filename) {
     let csvContent = headers.join(',') + '\r\n';
@@ -195,55 +258,3 @@ function exportarParaCSV(headers, dataRows, filename) {
         document.body.removeChild(link);
     }
 }
-
-// --- INICIALIZAÇÃO DA PÁGINA ---
-document.addEventListener('DOMContentLoaded', () => {
-    const hoje = new Date();
-    const ano = hoje.getFullYear();
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    const hojeFormatadoLocal = `${ano}-${mes}-${dia}`;
-    document.getElementById('data-inicio').value = hojeFormatadoLocal;
-    document.getElementById('data-fim').value = hojeFormatadoLocal;
-
-    const urlInicial = `/api/resumo?inicio=${hojeFormatadoLocal}&fim=${hojeFormatadoLocal}`;
-    carregarResumo(urlInicial);
-
-    document.getElementById('btn-filtrar').addEventListener('click', () => {
-        const inicio = document.getElementById('data-inicio').value;
-        const fim = document.getElementById('data-fim').value;
-        if (inicio && fim) {
-            const url = `/api/resumo?inicio=${inicio}&fim=${fim}`;
-            carregarResumo(url);
-        }
-    });
-
-    document.getElementById('btn-exportar-csv').addEventListener('click', () => {
-        if (dadosAtuaisDaTabela.length === 0) {
-            alert("Não há dados para exportar com os filtros atuais.");
-            return;
-        }
-        const headers = ["ID Campanha", "Nome Campanha", "Moeda", "Impressoes", "Cliques", "Custo", "Conversoes", "Valor Conversoes", "Resultado", "ROI"];
-        const dataRows = dadosAtuaisDaTabela.map(c => [
-            c.id, c.nome, c.codigo_moeda || 'BRL',
-            c.impressoes || 0, c.cliques || 0,
-            c.custo || 0, c.conversoes || 0,
-            c.valor_conversoes || 0, c.resultado || 0,
-            (c.roi || 0).toFixed(4)
-        ]);
-        const dataHoje = new Date().toISOString().slice(0, 10);
-        exportarParaCSV(headers, dataRows, `resumo_campanhas_${dataHoje}.csv`);
-    });
-
-    document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-        if (todasCampanhas.length === 0) return;
-
-        campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
-        moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
-
-        popularFiltro('campanhas', todasCampanhas);
-        popularFiltro('moedas', todasCampanhas);
-
-        aplicarFiltros();
-    });
-});
