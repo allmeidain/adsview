@@ -113,7 +113,13 @@ app.post('/api/webhook', (req, res) => {
             }
         });
     });
-    res.status(200).send('OK');
+   // NOVO: Salva o timestamp da última atualização bem-sucedida
+    const timestamp = new Date().toISOString();
+    const sqlTimestamp = `INSERT INTO configuracoes (chave, valor) VALUES ('ultima_atualizacao', ?) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor;`;
+    db.run(sqlTimestamp, [timestamp]);
+ 
+
+ res.status(200).send('OK');
 });
 
 const camposNumericos = ['checkouts', 'conversoes', 'valor_conversoes', 'visitors'];
@@ -193,6 +199,16 @@ app.post('/api/configuracoes', (req, res) => {
     });
 });
 
+// ROTA NOVA PARA OBTER O HORÁRIO DA ÚLTIMA ATUALIZAÇÃO
+app.get('/api/ultima-atualizacao', (req, res) => {
+    const sql = `SELECT valor FROM configuracoes WHERE chave = ?`;
+    db.get(sql, ['ultima_atualizacao'], (err, row) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(row || {}); // Retorna o objeto ou um objeto vazio se não encontrado
+    });
+});
 app.listen(PORTA, () => {
     console.log(`🚀 Servidor (vFinal) rodando em http://localhost:${PORTA}`);
 });
