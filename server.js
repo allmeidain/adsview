@@ -1,59 +1,32 @@
-// VERSÃO FINAL E COMPLETA - 15/06/2025
+// VERSÃO FINAL COM AUTENTICAÇÃO - 16/06/2025
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
+const fetch = require('node-fetch');
+const basicAuth = require('express-basic-auth');
 const app = express();
 const PORTA = 3000;
-const CAMINHO_BD = './database.db';
-const fetch = require('node-fetch');
+
+// --- LÓGICA DE AUTENTICAÇÃO ---
+// Lê o usuário e a senha das "Variáveis de Ambiente" para segurança.
+// Se não encontrar, usa 'admin' e 'password' como padrão para testes locais.
+const users = {};
+const adminUser = process.env.ADMIN_USERNAME || 'admin';
+const adminPass = process.env.ADMIN_PASSWORD || 'password';
+users[adminUser] = adminPass;
+
+const authMiddleware = basicAuth({
+    users: users,
+    challenge: true, // Isso faz o navegador mostrar a janela de login
+    unauthorizedResponse: 'Acesso não autorizado. Verifique suas credenciais.'
+});
+
+// --- CONFIGURAÇÃO DO SERVIDOR E ROTAS ---
+const CAMINHO_BD = process.env.RENDER_DISK_MOUNT_PATH ? `${process.env.RENDER_DISK_MOUNT_PATH}/database.db` : './database.db';
 
 app.use(express.json());
-app.use(express.static('public'));
 
-const db = new sqlite3.Database(CAMINHO_BD, (err) => {
-    if (err) return console.error("Erro ao abrir o banco de dados:", err.message);
-    
-    console.log("Conectado com sucesso ao banco de dados SQLite.");
-    db.exec('PRAGMA foreign_keys = ON;');
-
-    const sqlCriarTabelaCampanhas = `CREATE TABLE IF NOT EXISTS campanhas (id TEXT PRIMARY KEY, nome TEXT, conta TEXT, codigo_moeda TEXT);`;
-const sqlCriarTabelaDesempenho = `
-    CREATE TABLE IF NOT EXISTS desempenho_diario (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, id_campanha TEXT NOT NULL, data TEXT NOT NULL,
-        impressoes INTEGER, cliques INTEGER, custo REAL, cpc_medio REAL, ctr REAL,
-        parcela_impressao REAL, parcela_superior REAL, parcela_abs_superior REAL,
-        orcamento_diario REAL, estrategia_lance TEXT, nome_estrategia_lance TEXT, pagina TEXT,
-        checkouts INTEGER DEFAULT 0, conversoes INTEGER, valor_conversoes REAL DEFAULT 0,
-        visitors INTEGER DEFAULT 0, -- COLUNA ADICIONADA
-        checkouts_editado INTEGER DEFAULT 0, conversoes_editado INTEGER DEFAULT 0, valor_conversoes_editado INTEGER DEFAULT 0,
-        visitors_editado INTEGER DEFAULT 0, -- COLUNA ADICIONADA
-        alteracoes TEXT, cpa_desejado REAL, cpc_maximo REAL,
-        UNIQUE(id_campanha, data), FOREIGN KEY(id_campanha) REFERENCES campanhas(id) ON DELETE CASCADE
-    );`;
-    const sqlCriarTabelaConfig = `CREATE TABLE IF NOT EXISTS configuracoes (chave TEXT PRIMARY KEY, valor TEXT);`;
-
-    db.serialize(() => {
-        db.run(sqlCriarTabelaCampanhas);
-        db.run(sqlCriarTabelaDesempenho);
-        db.run(sqlCriarTabelaConfig);
-    });
-});
-
-// NOVA ROTA PARA BUSCAR COTAÇÃO
-app.get('/api/cotacao', async (req, res) => {
-    try {
-        // Usamos a API gratuita do Frankfurter, que não exige chave
-        const apiResponse = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL');
-        if (!apiResponse.ok) {
-            throw new Error(`Erro na API de cotação: ${apiResponse.statusText}`);
-        }
-        const data = await apiResponse.json();
-        res.json(data);
-    } catch (error) {
-        console.error("Falha ao buscar cotação:", error);
-        res.status(500).json({ error: "Não foi possível obter a cotação da moeda." });
-    }
-});
-
+// --- ROTAS PÚBLICAS (NÃO EXIGEM SENHA) ---
+// A rota do webhook deve ser pública para que o Google Ads possa acessá-la.
 app.post('/api/webhook', (req, res) => {
     const { campanhas } = req.body;
     if (!campanhas) return res.status(400).send("Formato inválido.");
@@ -86,7 +59,7 @@ app.post('/api/webhook', (req, res) => {
                                 dia.orcamentoDiario, dia.estrategia, dia.nomeEstrategia,
                                 dia.cpaDesejado, dia.cpcMaximo,
                                 dia.conversoes, dia.checkouts, dia.valorConversoes,
-                                dia.visitors, // Novo parâmetro
+                                dia.visitors,
                                 row.id
                             ];
                             db.run(updateSql, params);
@@ -98,7 +71,7 @@ app.post('/api/webhook', (req, res) => {
                                     orcamento_diario, estrategia_lance, nome_estrategia_lance, pagina,
                                     cpa_desejado, cpc_maximo,
                                     conversoes, checkouts, valor_conversoes, visitors, alteracoes
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`; // Aumentou um '?'
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
                             const params = [
                                 campanha.id, dia.data, dia.impressoes, dia.cliques, custo, dia.cpcMedio, dia.ctr,
                                 dia.searchImpressionShare, dia.topImpressionPercentage, dia.absoluteTopImpressionPercentage,
@@ -113,36 +86,70 @@ app.post('/api/webhook', (req, res) => {
             }
         });
     });
-   // NOVO: Salva o timestamp da última atualização bem-sucedida
     const timestamp = new Date().toISOString();
     const sqlTimestamp = `INSERT INTO configuracoes (chave, valor) VALUES ('ultima_atualizacao', ?) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor;`;
     db.run(sqlTimestamp, [timestamp]);
- 
-
- res.status(200).send('OK');
+    res.status(200).send('OK');
 });
 
-const camposNumericos = ['checkouts', 'conversoes', 'valor_conversoes', 'visitors'];
+app.get('/api/cotacao', async (req, res) => {
+    try {
+        const apiResponse = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL');
+        if (!apiResponse.ok) {
+            throw new Error(`Erro na API de cotação: ${apiResponse.statusText}`);
+        }
+        const data = await apiResponse.json();
+        res.json(data);
+    } catch (error) {
+        console.error("Falha ao buscar cotação:", error);
+        res.status(500).json({ error: "Não foi possível obter a cotação da moeda." });
+    }
+});
+
+// --- APLICAÇÃO DA SENHA ---
+// Todas as rotas definidas ABAIXO desta linha exigirão login e senha.
+app.use(authMiddleware);
+
+// --- ROTAS PROTEGIDAS ---
+app.use(express.static('public'));
+
+app.post('/api/salvar', (req, res) => {
+    const { id, campo, valor } = req.body;
+    const camposNumericos = ['checkouts', 'conversoes', 'valor_conversoes', 'visitors'];
+    const camposTexto = ['alteracoes', 'pagina', 'nome_estrategia_lance'];
+    if (![...camposNumericos, ...camposTexto].includes(campo) || !id) {
+        return res.status(400).send('Campo ou ID inválido.');
+    }
+    let sql, params;
+    if (camposNumericos.includes(campo)) {
+        const campoEditadoFlag = `${campo}_editado`;
+        sql = `UPDATE desempenho_diario SET ${campo} = ?, ${campoEditadoFlag} = 1 WHERE id = ?`;
+        params = [valor, id];
+    } else { 
+        sql = `UPDATE desempenho_diario SET ${campo} = ? WHERE id = ?`;
+        params = [valor, id];
+    }
+    db.run(sql, params, (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(200).json({ success: true });
+    });
+});
 
 app.get('/api/resumo', (req, res) => {
     const { inicio, fim } = req.query;
     let sql, params;
-
     if (inicio && fim) {
         sql = `
             SELECT
                 c.id, c.nome, c.conta, c.codigo_moeda,
-                SUM(d.impressoes) as impressoes, SUM(d.cliques) as cliques,
-                SUM(d.custo) as custo, SUM(d.checkouts) as checkouts, SUM(d.conversoes) as conversoes,
-                SUM(d.valor_conversoes) as valor_conversoes,
+                SUM(d.impressoes) as impressoes, SUM(d.cliques) as cliques, SUM(d.custo) as custo,
+                SUM(d.checkouts) as checkouts, SUM(d.conversoes) as conversoes, SUM(d.valor_conversoes) as valor_conversoes,
                 (SUM(d.valor_conversoes) - SUM(d.custo)) as resultado,
                 CASE WHEN SUM(d.cliques) > 0 THEN SUM(d.custo) / SUM(d.cliques) ELSE 0 END as cpc_medio,
-                CASE WHEN SUM(d.custo) > 0 THEN (SUM(d.valor_conversoes) - SUM(d.custo)) / SUM(d.custo) ELSE 0 END as roi -- ADICIONADO
+                CASE WHEN SUM(d.custo) > 0 THEN (SUM(d.valor_conversoes) - SUM(d.custo)) / SUM(d.custo) ELSE 0 END as roi
             FROM campanhas c
-            LEFT JOIN desempenho_diario d ON c.id = d.id_campanha
-            WHERE d.data BETWEEN ? AND ?
-            GROUP BY c.id, c.nome, c.conta, c.codigo_moeda ORDER BY c.nome ASC;
-        `;
+            LEFT JOIN desempenho_diario d ON c.id = d.id_campanha WHERE d.data BETWEEN ? AND ?
+            GROUP BY c.id, c.nome, c.conta, c.codigo_moeda ORDER BY c.nome ASC;`;
         params = [inicio, fim];
     } else {
         const hoje = new Date().toISOString().slice(0, 10);
@@ -151,14 +158,12 @@ app.get('/api/resumo', (req, res) => {
                 c.id, c.nome, c.conta, c.codigo_moeda, d.impressoes, d.cliques, d.custo,
                 d.checkouts, d.conversoes, d.valor_conversoes, d.cpc_medio,
                 (d.valor_conversoes - d.custo) as resultado,
-                CASE WHEN d.custo > 0 THEN (d.valor_conversoes - d.custo) / d.custo ELSE 0 END as roi -- ADICIONADO
+                CASE WHEN d.custo > 0 THEN (d.valor_conversoes - d.custo) / d.custo ELSE 0 END as roi
             FROM campanhas c
             LEFT JOIN desempenho_diario d ON c.id = d.id_campanha AND d.data = ?
-            ORDER BY c.nome ASC;
-        `;
+            ORDER BY c.nome ASC;`;
         params = [hoje];
     }
-
     db.all(sql, params, (err, linhas) => {
         if (err) res.status(500).json({ error: err.message });
         else res.json(linhas);
@@ -181,6 +186,14 @@ app.get('/api/dados/:id_campanha', (req, res) => {
     });
 });
 
+app.get('/api/ultima-atualizacao', (req, res) => {
+    const sql = `SELECT valor FROM configuracoes WHERE chave = ?`;
+    db.get(sql, ['ultima_atualizacao'], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(row || {});
+    });
+});
+
 app.get('/api/configuracoes/:chave', (req, res) => {
     const { chave } = req.params;
     const sql = `SELECT valor FROM configuracoes WHERE chave = ?`;
@@ -199,16 +212,36 @@ app.post('/api/configuracoes', (req, res) => {
     });
 });
 
-// ROTA NOVA PARA OBTER O HORÁRIO DA ÚLTIMA ATUALIZAÇÃO
-app.get('/api/ultima-atualizacao', (req, res) => {
-    const sql = `SELECT valor FROM configuracoes WHERE chave = ?`;
-    db.get(sql, ['ultima_atualizacao'], (err, row) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json(row || {}); // Retorna o objeto ou um objeto vazio se não encontrado
+// --- INICIALIZAÇÃO DO BANCO DE DADOS E DO SERVIDOR ---
+const db = new sqlite3.Database(CAMINHO_BD, (err) => {
+    if (err) return console.error("Erro ao abrir o banco de dados:", err.message);
+    
+    console.log("Conectado com sucesso ao banco de dados SQLite.");
+    db.exec('PRAGMA foreign_keys = ON;');
+
+    const sqlCriarTabelaCampanhas = `CREATE TABLE IF NOT EXISTS campanhas (id TEXT PRIMARY KEY, nome TEXT, conta TEXT, codigo_moeda TEXT);`;
+    const sqlCriarTabelaDesempenho = `
+        CREATE TABLE IF NOT EXISTS desempenho_diario (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, id_campanha TEXT NOT NULL, data TEXT NOT NULL,
+            impressoes INTEGER, cliques INTEGER, custo REAL, cpc_medio REAL, ctr REAL,
+            parcela_impressao REAL, parcela_superior REAL, parcela_abs_superior REAL,
+            orcamento_diario REAL, estrategia_lance TEXT, nome_estrategia_lance TEXT, pagina TEXT,
+            checkouts INTEGER DEFAULT 0, conversoes INTEGER, valor_conversoes REAL DEFAULT 0,
+            visitors INTEGER DEFAULT 0,
+            checkouts_editado INTEGER DEFAULT 0, conversoes_editado INTEGER DEFAULT 0, valor_conversoes_editado INTEGER DEFAULT 0,
+            visitors_editado INTEGER DEFAULT 0,
+            alteracoes TEXT, cpa_desejado REAL, cpc_maximo REAL,
+            UNIQUE(id_campanha, data), FOREIGN KEY(id_campanha) REFERENCES campanhas(id) ON DELETE CASCADE
+        );`;
+    const sqlCriarTabelaConfig = `CREATE TABLE IF NOT EXISTS configuracoes (chave TEXT PRIMARY KEY, valor TEXT);`;
+
+    db.serialize(() => {
+        db.run(sqlCriarTabelaCampanhas);
+        db.run(sqlCriarTabelaDesempenho);
+        db.run(sqlCriarTabelaConfig);
     });
 });
-app.listen(PORTA, () => {
-    console.log(`🚀 Servidor (vFinal) rodando em http://localhost:${PORTA}`);
+
+app.listen(process.env.PORT || PORTA, () => {
+    console.log(`🚀 Servidor (vFinal com Auth) rodando em http://localhost:${PORTA}`);
 });
