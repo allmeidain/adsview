@@ -1,0 +1,11 @@
+# Dependências
+node_modules/
+
+# Arquivos de ambiente e logs
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Banco de dados local (para não enviar seu .db de teste)
+database.db

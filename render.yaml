@@ -1,0 +1,13 @@
+services:
+  # Define o nosso servidor web
+  - type: web
+    name: dashboard-campanhas
+    env: node
+    plan: free
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    # Define um disco persistente para o banco de dados
+    disks:
+      - name: sqlite-data
+        mountPath: /var/data
+        sizeGB: 1

@@ -1,0 +1,13 @@
+{
+  "name": "dashboard-campanhas",
+  "version": "1.0.0",
+  "description": "Dashboard para campanhas do Google Ads",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6"
+  }
+}
