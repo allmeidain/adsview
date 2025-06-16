@@ -192,6 +192,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = `/api/resumo?inicio=${inicio}&fim=${fim}`;
             carregarResumo(url);
         }
+
+            // NOVO: Evento para o botão de limpar filtros
+    document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+        if (todasCampanhas.length === 0) return; // Não faz nada se não houver dados
+
+        // 1. Redefine as variáveis de estado para incluir tudo
+        campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
+        moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
+
+        // 2. Redesenha os filtros com todas as opções marcadas
+        popularFiltro('campanhas', todasCampanhas);
+        popularFiltro('moedas', todasCampanhas);
+
+        // 3. Aplica os filtros para atualizar a tela
+        aplicarFiltros();
+    });
     });
 
     document.getElementById('btn-exportar-csv').addEventListener('click', () => {
