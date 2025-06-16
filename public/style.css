@@ -352,3 +352,9 @@ th.coluna-editavel {
     font-weight: bold;
     border-top: 2px solid #adb5bd;
 }
+/* --- Estilo para a linha de Total Consolidado --- */
+.totals-table .total-consolidado-row td {
+    background-color: #e9ecef;
+    font-weight: bold;
+    border-top: 2px solid #adb5bd;
+}
