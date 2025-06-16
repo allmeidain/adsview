@@ -25,6 +25,12 @@ const CAMINHO_BD = process.env.RENDER_DISK_MOUNT_PATH ? `${process.env.RENDER_DI
 
 app.use(express.json());
 
+// NOVO: Middleware para desativar o cache em todas as rotas da API
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 // --- ROTAS PÚBLICAS (NÃO EXIGEM SENHA) ---
 // A rota do webhook deve ser pública para que o Google Ads possa acessá-la.
 app.post('/api/webhook', (req, res) => {
