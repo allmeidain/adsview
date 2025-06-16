@@ -1,13 +1,17 @@
+# Declaração do disco no nível principal do arquivo
+disks:
+  - name: sqlite-data
+    mountPath: /var/data
+
+# Declaração dos serviços
 services:
-  # Define o nosso servidor web
   - type: web
     name: dashboard-campanhas
     env: node
     plan: free
     buildCommand: "npm install"
     startCommand: "node server.js"
-    # Define um disco persistente para o banco de dados
-    disks:
-      - name: sqlite-data
-        mountPath: /var/data
-        sizeGB: 1
+    # Anexa o disco definido acima a este serviço
+    disk:
+      name: sqlite-data
+      mountPath: /var/data
