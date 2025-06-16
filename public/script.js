@@ -44,7 +44,7 @@ function renderizarTotais(campanhas, cotacao) {
 
     const dataInicio = document.getElementById('data-inicio').value;
     const dataFim = document.getElementById('data-fim').value;
-    const titulo = !dataInicio || dataInicio === dataFim ? 'Hoje' : 'Período';
+    const titulo = !dataInicio || dataInicio === dataFim ? 'Dia' : 'Período';
     
     let metricsHTML = `<table class="totals-table"><thead><tr>
         <th>Moeda</th><th>Custo Total (${titulo})</th><th>Valor Total de Conv. (${titulo})</th><th>Resultado Total (${titulo})</th><th>ROI Total (${titulo})</th>
