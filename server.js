@@ -4,6 +4,7 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const PORTA = 3000;
 const CAMINHO_BD = './database.db';
+const fetch = require('node-fetch');
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -35,6 +36,22 @@ const sqlCriarTabelaDesempenho = `
         db.run(sqlCriarTabelaDesempenho);
         db.run(sqlCriarTabelaConfig);
     });
+});
+
+// NOVA ROTA PARA BUSCAR COTAÇÃO
+app.get('/api/cotacao', async (req, res) => {
+    try {
+        // Usamos a API gratuita do Frankfurter, que não exige chave
+        const apiResponse = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL');
+        if (!apiResponse.ok) {
+            throw new Error(`Erro na API de cotação: ${apiResponse.statusText}`);
+        }
+        const data = await apiResponse.json();
+        res.json(data);
+    } catch (error) {
+        console.error("Falha ao buscar cotação:", error);
+        res.status(500).json({ error: "Não foi possível obter a cotação da moeda." });
+    }
 });
 
 app.post('/api/webhook', (req, res) => {
