@@ -12,7 +12,9 @@ function renderizarDashboard(campanhasParaRenderizar, cotacao, timestamp) {
     dadosAtuaisDaTabela = campanhasParaRenderizar;
     renderizarTotais(dadosAtuaisDaTabela, cotacao);
     renderizarTabela(dadosAtuaisDaTabela);
-    renderizarTimestamp(timestamp);
+    if (timestamp) { // Adicionado para evitar erro se timestamp for nulo
+        renderizarTimestamp(timestamp);
+    }
 }
 
 function renderizarTimestamp(timestamp) {
@@ -47,7 +49,7 @@ function renderizarTotais(campanhas, cotacao) {
     const titulo = !dataInicio || dataInicio === dataFim ? 'Dia' : 'Período';
     
     let metricsHTML = `<table class="totals-table"><thead><tr>
-        <th>Moeda</th><th>Custo Total (<span class="math-inline">\{titulo\}\)</th\><th\>Valor Total de Conv\. \(</span>{titulo})</th><th>Resultado Total (<span class="math-inline">\{titulo\}\)</th\><th\>ROI Total \(</span>{titulo})</th>
+        <th>Moeda</th><th>Custo Total (${titulo})</th><th>Valor Total de Conv. (${titulo})</th><th>Resultado Total (${titulo})</th><th>ROI Total (${titulo})</th>
     </tr></thead><tbody>`;
 
     for (const moeda in totaisPorMoeda) {
@@ -56,11 +58,11 @@ function renderizarTotais(campanhas, cotacao) {
         const roiTotal = totais.custo > 0 ? totais.resultado / totais.custo : 0;
         
         metricsHTML += `<tr>
-            <td><span class="math-inline">\{moeda\}</td\>
-<td\></span>{totais.custo.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
+            <td>${moeda}</td>
+            <td>${totais.custo.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
             <td>${totais.valor_conversoes.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
-            <td style="color: <span class="math-inline">\{corResultado\}; font\-weight\: 500;"\></span>{totais.resultado.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
-            <td style="color: <span class="math-inline">\{corResultado\}; font\-weight\: 500;"\></span>{roiTotal.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
+            <td style="color: ${corResultado}; font-weight: 500;">${totais.resultado.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
+            <td style="color: ${corResultado}; font-weight: 500;">${roiTotal.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
         </tr>`;
     }
 
@@ -74,10 +76,10 @@ function renderizarTotais(campanhas, cotacao) {
         
         metricsHTML += `<tr class="total-consolidado-row">
             <td>Total (BRL)</td>
-            <td><span class="math-inline">\{custoConsolidado\.toLocaleString\('pt\-BR', \{ style\: 'currency', currency\: 'BRL' \}\)\}</td\>
-<td\></span>{valorConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-            <td style="color: <span class="math-inline">\{corResultadoConsolidado\}; font\-weight\: 500;"\></span>{resultadoConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-            <td style="color: <span class="math-inline">\{corResultadoConsolidado\}; font\-weight\: 500;"\></span>{roiConsolidado.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
+            <td>${custoConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td>${valorConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td style="color: ${corResultadoConsolidado}; font-weight: 500;">${resultadoConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td style="color: ${corResultadoConsolidado}; font-weight: 500;">${roiConsolidado.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
         </tr>`;
     }
 
@@ -109,10 +111,10 @@ function renderizarTabela(campanhas) {
             const corResultado = (campanha.resultado || 0) >= 0 ? '#28a745' : '#dc3545';
 
             tabelaHTML += `<tr>
-                <td><a href="/detalhes.html?id=<span class="math-inline">\{campanha\.id\}"\></span>{campanha.id}</a></td><td><a href="/detalhes.html?id=<span class="math-inline">\{campanha\.id\}"\></span>{campanha.nome}</a></td>
-                <td><span class="math-inline">\{\(campanha\.impressoes \|\| 0\)\.toLocaleString\('pt\-BR'\)\}</td\><td\></span>{(campanha.cliques || 0).toLocaleString('pt-BR')}</td><td><span class="math-inline">\{cpcMedio\}</td\><td\></span>{custo}</td>
-                <td><span class="math-inline">\{checkouts\}</td\><td\></span>{(campanha.conversoes || 0).toLocaleString('pt-BR')}</td><td>${valorConversoes}</td>
-                <td style="color: <span class="math-inline">\{corResultado\}; font\-weight\: 500;"\></span>{resultado}</td><td style="color: <span class="math-inline">\{corResultado\}; font\-weight\: 500;"\></span>{roi}</td>
+                <td><a href="/detalhes.html?id=${campanha.id}">${campanha.id}</a></td><td><a href="/detalhes.html?id=${campanha.id}">${campanha.nome}</a></td>
+                <td>${(campanha.impressoes || 0).toLocaleString('pt-BR')}</td><td>${(campanha.cliques || 0).toLocaleString('pt-BR')}</td><td>${cpcMedio}</td><td>${custo}</td>
+                <td>${checkouts}</td><td>${(campanha.conversoes || 0).toLocaleString('pt-BR')}</td><td>${valorConversoes}</td>
+                <td style="color: ${corResultado}; font-weight: 500;">${resultado}</td><td style="color: ${corResultado}; font-weight: 500;">${roi}</td>
             </tr>`;
         });
     }
@@ -120,7 +122,10 @@ function renderizarTabela(campanhas) {
     container.innerHTML = tabelaHTML;
 }
 
-function aplicarFiltros(cotacao, timestamp) {
+function aplicarFiltros() {
+    const cotacao = JSON.parse(sessionStorage.getItem('cotacao'));
+    const timestamp = JSON.parse(sessionStorage.getItem('timestamp'));
+
     campanhasSelecionadasIds = Array.from(document.querySelectorAll('#checkboxes-campanhas input:checked')).map(cb => cb.value);
     moedasSelecionadas = Array.from(document.querySelectorAll('#checkboxes-moedas input:checked')).map(cb => cb.value);
 
@@ -145,9 +150,6 @@ function popularFiltro(tipo, campanhas) {
         itemsUnicos = [...new Set(campanhas.map(c => c.codigo_moeda || 'BRL'))];
     }
     
-    const cotacao = JSON.parse(sessionStorage.getItem('cotacao'));
-    const timestamp = JSON.parse(sessionStorage.getItem('timestamp'));
-
     itemsUnicos.forEach(item => {
         const id = tipo === 'campanhas' ? item.id : item;
         const nome = tipo === 'campanhas' ? item.nome : item;
@@ -156,7 +158,7 @@ function popularFiltro(tipo, campanhas) {
         const isChecked = listaSelecao.includes(String(id));
         const label = document.createElement('label');
         label.innerHTML = `<input type="checkbox" value="${id}" ${isChecked ? 'checked' : ''} /> ${nome}`;
-        label.addEventListener('change', () => aplicarFiltros(cotacao, timestamp));
+        label.addEventListener('change', aplicarFiltros);
         container.appendChild(label);
     });
 }
@@ -196,7 +198,7 @@ async function carregarResumo(url) {
 
         popularFiltro('campanhas', todasCampanhas);
         popularFiltro('moedas', todasCampanhas);
-        aplicarFiltros(cotacao, timestamp);
+        aplicarFiltros();
 
     } catch (erro) {
         container.innerHTML = `<p>Ocorreu um erro ao carregar o resumo. Verifique o console.</p>`;
@@ -240,19 +242,46 @@ function exportarParaCSV(headers, dataRows, filename) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("1. Evento DOMContentLoaded disparado. O HTML base foi carregado.");
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const hojeFormatadoLocal = `${ano}-${mes}-${dia}`;
+    
+    document.getElementById('data-inicio').value = hojeFormatadoLocal;
+    document.getElementById('data-fim').value = hojeFormatadoLocal;
 
-    try {
-        const dataInicioEl = document.getElementById('data-inicio');
-        const dataFimEl = document.getElementById('data-fim');
+    const urlInicial = `/api/resumo?inicio=${hojeFormatadoLocal}&fim=${hojeFormatadoLocal}`;
+    carregarResumo(urlInicial);
 
-        console.log("2. Procurando pelos campos de data...");
-        if (!dataInicioEl || !dataFimEl) {
-            console.error("ERRO CRÍTICO: Não foi possível encontrar os elementos de input de data ('data-inicio' ou 'data-fim'). Verifique se o seu arquivo index.html no GitHub é a versão mais recente.");
-            alert("Erro crítico: Os elementos do filtro de data não foram encontrados. O HTML pode estar desatualizado.");
-            return;
+    document.getElementById('btn-filtrar').addEventListener('click', () => {
+        const url = `/api/resumo?inicio=${document.getElementById('data-inicio').value}&fim=${document.getElementById('data-fim').value}`;
+        carregarResumo(url);
+    });
+
+    document.getElementById('btn-exportar-csv').addEventListener('click', () => {
+        if (dadosAtuaisDaTabela.length === 0) {
+            alert("Não há dados para exportar com os filtros atuais."); return;
         }
-        console.log("3. Campos de data encontrados com sucesso.");
+        const headers = ["ID Campanha", "Nome Campanha", "Moeda", "Impressoes", "Cliques", "Custo", "Checkouts", "Conversoes", "Valor Conversoes", "Resultado", "ROI"];
+        const dataRows = dadosAtuaisDaTabela.map(c => [
+            c.id, c.nome, c.codigo_moeda || 'BRL',
+            c.impressoes || 0, c.cliques || 0, c.custo || 0, c.checkouts || 0, c.conversoes || 0,
+            c.valor_conversoes || 0, c.resultado || 0, (c.roi || 0).toFixed(4)
+        ]);
+        const dataHoje = new Date().toISOString().slice(0, 10);
+        exportarParaCSV(headers, dataRows, `resumo_campanhas_${dataHoje}.csv`);
+    });
 
-        const hoje = new Date();
-        const ano = hoje.getFullYear
+    document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+        if (todasCampanhas.length === 0) return;
+        
+        campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
+        moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
+        
+        popularFiltro('campanhas', todasCampanhas);
+        popularFiltro('moedas', todasCampanhas);
+        
+        aplicarFiltros();
+    });
+});
