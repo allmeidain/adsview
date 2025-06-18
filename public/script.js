@@ -3,15 +3,29 @@ let todasCampanhas = [];
 let campanhasSelecionadasIds = [];
 let moedasSelecionadas = [];
 let dadosAtuaisDaTabela = [];
-// A variável isInitialLoad foi removida para simplificar a lógica.
+let isInitialLoad = true;
 let expanded = { campanhas: false, moedas: false };
 
 // --- FUNÇÕES DE LÓGICA E RENDERIZAÇÃO ---
 
-function renderizarDashboard(campanhasParaRenderizar, cotacao) {
+function renderizarDashboard(campanhasParaRenderizar, cotacao, timestamp) {
     dadosAtuaisDaTabela = campanhasParaRenderizar;
     renderizarTotais(dadosAtuaisDaTabela, cotacao);
     renderizarTabela(dadosAtuaisDaTabela);
+    renderizarTimestamp(timestamp);
+}
+
+function renderizarTimestamp(timestamp) {
+    const el = document.getElementById('info-ultima-atualizacao');
+    if (timestamp && timestamp.valor) {
+        const dataFormatada = new Date(timestamp.valor).toLocaleString('pt-BR', {
+            year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+        el.innerHTML = `<small>Última atualização de dados: ${dataFormatada}</small>`;
+    } else {
+        el.innerHTML = `<small>Aguardando a primeira atualização de dados.</small>`;
+    }
 }
 
 function renderizarTotais(campanhas, cotacao) {
@@ -130,16 +144,19 @@ function popularFiltro(tipo, campanhas) {
     } else if (tipo === 'moedas') {
         itemsUnicos = [...new Set(campanhas.map(c => c.codigo_moeda || 'BRL'))];
     }
-
-    const listaSelecao = tipo === 'campanhas' ? campanhasSelecionadasIds : moedasSelecionadas;
+    
+    const cotacao = JSON.parse(sessionStorage.getItem('cotacao'));
+    const timestamp = JSON.parse(sessionStorage.getItem('timestamp'));
 
     itemsUnicos.forEach(item => {
         const id = tipo === 'campanhas' ? item.id : item;
         const nome = tipo === 'campanhas' ? item.nome : item;
+        const listaSelecao = tipo === 'campanhas' ? campanhasSelecionadasIds : moedasSelecionadas;
+        
         const isChecked = listaSelecao.includes(String(id));
         const label = document.createElement('label');
         label.innerHTML = `<input type="checkbox" value="${id}" ${isChecked ? 'checked' : ''} /> ${nome}`;
-        label.addEventListener('change', () => aplicarFiltros(JSON.parse(sessionStorage.getItem('cotacao')), JSON.parse(sessionStorage.getItem('timestamp'))));
+        label.addEventListener('change', () => aplicarFiltros(cotacao, timestamp));
         container.appendChild(label);
     });
 }
@@ -167,7 +184,6 @@ async function carregarResumo(url) {
         sessionStorage.setItem('cotacao', JSON.stringify(cotacao));
         sessionStorage.setItem('timestamp', JSON.stringify(timestamp));
         
-        // LÓGICA ATUALIZADA: Sempre redefine os filtros quando novos dados são carregados
         campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
         moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
 
@@ -201,6 +217,28 @@ function toggleCheckboxes(tipo) {
     checkboxes.style.display = expanded[tipo] ? "block" : "none";
 }
 
+function exportarParaCSV(headers, dataRows, filename) {
+    let csvContent = headers.join(',') + '\r\n';
+    dataRows.forEach(rowArray => {
+        const row = rowArray.map(field => {
+            let f = String(field === null || field === undefined ? '' : field).replace(/"/g, '""');
+            return `"${f}"`;
+        });
+        csvContent += row.join(',') + '\r\n';
+    });
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log("1. Evento DOMContentLoaded disparado. O HTML base foi carregado.");
 
@@ -210,86 +248,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log("2. Procurando pelos campos de data...");
         if (!dataInicioEl || !dataFimEl) {
-            console.error("ERRO CRÍTICO: Não foi possível encontrar os elementos de input de data ('data-inicio' ou 'data-fim'). Verifique se o seu arquivo index.html no GitHub é a versão mais recente que ajustamos.");
-            alert("Erro crítico na inicialização da página. Verifique o console do desenvolvedor (F12).");
-            return; // Para a execução para evitar mais erros.
+            console.error("ERRO CRÍTICO: Não foi possível encontrar os elementos de input de data ('data-inicio' ou 'data-fim'). Verifique se o seu arquivo index.html no GitHub é a versão mais recente.");
+            alert("Erro crítico: Os elementos do filtro de data não foram encontrados. O HTML pode estar desatualizado.");
+            return;
         }
         console.log("3. Campos de data encontrados com sucesso.");
 
         const hoje = new Date();
-        const ano = hoje.getFullYear();
-        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-        const dia = String(hoje.getDate()).padStart(2, '0');
-        const hojeFormatadoLocal = `${ano}-${mes}-${dia}`;
-        
-        dataInicioEl.value = hojeFormatadoLocal;
-        dataFimEl.value = hojeFormatadoLocal;
-        console.log("4. Datas padrão definidas nos inputs.");
-
-        const urlInicial = `/api/resumo?inicio=${hojeFormatadoLocal}&fim=${hojeFormatadoLocal}`;
-        console.log("5. Chamando carregarResumo() para buscar dados iniciais...");
-        carregarResumo(urlInicial);
-
-        // Adiciona os listeners de eventos aos botões
-        document.getElementById('btn-filtrar').addEventListener('click', () => {
-            const inicio = document.getElementById('data-inicio').value;
-            const fim = document.getElementById('data-fim').value;
-            if (inicio && fim) {
-                const url = `/api/resumo?inicio=${inicio}&fim=${fim}`;
-                carregarResumo(url);
-            }
-        });
-
-        document.getElementById('btn-exportar-csv').addEventListener('click', () => {
-            if (dadosAtuaisDaTabela.length === 0) {
-                alert("Não há dados para exportar com os filtros atuais."); return;
-            }
-            const headers = ["ID Campanha", "Nome Campanha", "Moeda", "Impressoes", "Cliques", "Custo", "Checkouts", "Conversoes", "Valor Conversoes", "Resultado", "ROI"];
-            const dataRows = dadosAtuaisDaTabela.map(c => [
-                c.id, c.nome, c.codigo_moeda || 'BRL',
-                c.impressoes || 0, c.cliques || 0, c.custo || 0, c.checkouts || 0, c.conversoes || 0,
-                c.valor_conversoes || 0, c.resultado || 0, (c.roi || 0).toFixed(4)
-            ]);
-            const dataHoje = new Date().toISOString().slice(0, 10);
-            exportarParaCSV(headers, dataRows, `resumo_campanhas_${dataHoje}.csv`);
-        });
-
-        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-            if (todasCampanhas.length === 0) return;
-            const cotacao = JSON.parse(sessionStorage.getItem('cotacao'));
-            const timestamp = JSON.parse(sessionStorage.getItem('timestamp'));
-            campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
-            moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
-            popularFiltro('campanhas', todasCampanhas);
-            popularFiltro('moedas', todasCampanhas);
-            aplicarFiltros(cotacao, timestamp);
-        });
-
-        console.log("6. Todos os listeners de eventos foram adicionados com sucesso.");
-
-    } catch (e) {
-        console.error("Ocorreu um erro fatal durante a inicialização da página:", e);
-        alert("Ocorreu um erro fatal no JavaScript. Verifique o console do desenvolvedor (F12).");
-    }
-});
-
-    document.getElementById('btn-exportar-csv').addEventListener('click', () => {
-        if (dadosAtuaisDaTabela.length === 0) {
-            alert("Não há dados para exportar com os filtros atuais."); return;
-        }
-        const headers = ["ID Campanha", "Nome Campanha", "Moeda", "Impressoes", "Cliques", "Custo", "Checkouts", "Conversoes", "Valor Conversoes", "Resultado", "ROI"];
-        const dataRows = dadosAtuaisDaTabela.map(c => [
-            c.id, c.nome, c.codigo_moeda || 'BRL',
-            c.impressoes || 0, c.cliques || 0, c.custo || 0, c.checkouts || 0, c.conversoes || 0,
-            c.valor_conversoes || 0, c.resultado || 0, (c.roi || 0).toFixed(4)
-        ]);
-        const dataHoje = new Date().toISOString().slice(0, 10);
-        exportarParaCSV(headers, dataRows, `resumo_campanhas_${dataHoje}.csv`);
-    });
-
-    document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-        if (todasCampanhas.length === 0) return;
-        const cotacao = JSON.parse(sessionStorage.getItem('cotacao'));
-        const timestamp = JSON.parse(sessionStorage.getItem('timestamp'));
-
-        campanhasSelecion
+        const ano = hoje.getFullYear
