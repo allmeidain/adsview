@@ -3,18 +3,17 @@ let todasCampanhas = [];
 let campanhasSelecionadasIds = [];
 let moedasSelecionadas = [];
 let dadosAtuaisDaTabela = [];
-let isInitialLoad = true;
+let cotacaoAtual = null;
+let timestampAtual = null;
 let expanded = { campanhas: false, moedas: false };
 
 // --- FUNÇÕES DE LÓGICA E RENDERIZAÇÃO ---
 
-function renderizarDashboard(campanhasParaRenderizar, cotacao, timestamp) {
+function renderizarDashboard(campanhasParaRenderizar) {
     dadosAtuaisDaTabela = campanhasParaRenderizar;
-    renderizarTotais(dadosAtuaisDaTabela, cotacao);
-    renderizarTabela(dadosAtuaisDaTabela);
-    if (timestamp) { // Adicionado para evitar erro se timestamp for nulo
-        renderizarTimestamp(timestamp);
-    }
+    renderizarTotais(campanhasParaRenderizar);
+    renderizarTabela(campanhasParaRenderizar);
+    renderizarTimestamp(timestampAtual);
 }
 
 function renderizarTimestamp(timestamp) {
@@ -30,7 +29,7 @@ function renderizarTimestamp(timestamp) {
     }
 }
 
-function renderizarTotais(campanhas, cotacao) {
+function renderizarTotais(campanhas) {
     const metricsContainer = document.getElementById('header-metrics');
     const totaisPorMoeda = {};
 
@@ -66,8 +65,8 @@ function renderizarTotais(campanhas, cotacao) {
         </tr>`;
     }
 
-    if (cotacao && cotacao.rates && cotacao.rates.BRL && totaisPorMoeda['USD'] && Object.keys(totaisPorMoeda).length > 1) {
-        const taxaCambio = cotacao.rates.BRL;
+    if (cotacaoAtual && cotacaoAtual.rates && cotacaoAtual.rates.BRL && totaisPorMoeda['USD'] && Object.keys(totaisPorMoeda).length > 1) {
+        const taxaCambio = cotacaoAtual.rates.BRL;
         let custoConsolidado = (totaisPorMoeda['BRL']?.custo || 0) + ((totaisPorMoeda['USD']?.custo || 0) * taxaCambio);
         let valorConsolidado = (totaisPorMoeda['BRL']?.valor_conversoes || 0) + ((totaisPorMoeda['USD']?.valor_conversoes || 0) * taxaCambio);
         const resultadoConsolidado = valorConsolidado - custoConsolidado;
@@ -123,9 +122,6 @@ function renderizarTabela(campanhas) {
 }
 
 function aplicarFiltros() {
-    const cotacao = JSON.parse(sessionStorage.getItem('cotacao'));
-    const timestamp = JSON.parse(sessionStorage.getItem('timestamp'));
-
     campanhasSelecionadasIds = Array.from(document.querySelectorAll('#checkboxes-campanhas input:checked')).map(cb => cb.value);
     moedasSelecionadas = Array.from(document.querySelectorAll('#checkboxes-moedas input:checked')).map(cb => cb.value);
 
@@ -135,7 +131,7 @@ function aplicarFiltros() {
         return correspondeCampanha && correspondeMoeda;
     });
     
-    renderizarDashboard(campanhasFiltradas, cotacao, timestamp);
+    renderizarDashboard(campanhasFiltradas);
 }
 
 function popularFiltro(tipo, campanhas) {
@@ -176,21 +172,17 @@ async function carregarResumo(url) {
         ]);
 
         if (!respostaCampanhas.ok) throw new Error(`Erro na API de campanhas.`);
-        if (!respostaCotacao.ok) throw new Error(`Erro na API de cotação.`);
-        if (!respostaTimestamp.ok) throw new Error(`Erro na API de timestamp.`);
         
         todasCampanhas = await respostaCampanhas.json();
-        const cotacao = await respostaCotacao.json();
-        const timestamp = await respostaTimestamp.json();
+        cotacaoAtual = await respostaCotacao.json();
+        timestampAtual = await respostaTimestamp.json();
         
-        sessionStorage.setItem('cotacao', JSON.stringify(cotacao));
-        sessionStorage.setItem('timestamp', JSON.stringify(timestamp));
-        
+        // Lógica simplificada: Sempre redefine os filtros ao carregar novos dados
         campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
         moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
 
         if (!Array.isArray(todasCampanhas) || todasCampanhas.length === 0) {
-            renderizarDashboard([], null, timestamp);
+            renderizarDashboard([], timestampAtual);
             popularFiltro('campanhas', []);
             popularFiltro('moedas', []);
             return;
