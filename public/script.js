@@ -91,15 +91,17 @@ function renderizarTotais(campanhas, cotacao) {
 
 function renderizarTabela(campanhas) {
     const container = document.getElementById('resumo-container');
+    // ATUALIZADO: Adicionado 'Checkouts' no cabeçalho e colspan aumentado para 11
     let tabelaHTML = `<div class="table-wrapper"><table><thead><tr>
-        <th>ID da Campanha</th><th>Nome da Campanha</th><th>Impressões</th><th>Cliques</th><th>CPC Médio</th><th>Custo</th><th>Conversões</th><th>Valor Conv.</th><th>Resultado</th><th>ROI</th>
+        <th>ID da Campanha</th><th>Nome da Campanha</th><th>Impressões</th><th>Cliques</th><th>CPC Médio</th><th>Custo</th><th>Checkouts</th><th>Conversões</th><th>Valor Conv.</th><th>Resultado</th><th>ROI</th>
     </tr></thead><tbody>`;
     
     if (campanhas.length === 0) {
-        tabelaHTML += '<tr><td colspan="10">Nenhuma campanha para exibir com os filtros atuais.</td></tr>';
+        tabelaHTML += '<tr><td colspan="11">Nenhuma campanha para exibir com os filtros atuais.</td></tr>';
     } else {
         campanhas.forEach(campanha => {
             const moeda = campanha.codigo_moeda || 'BRL';
+            const checkouts = (campanha.checkouts || 0).toLocaleString('pt-BR'); // NOVO: Formata o valor de checkouts
             const cpcMedio = (campanha.cpc_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
             const custo = (campanha.custo || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
             const valorConversoes = (campanha.valor_conversoes || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
@@ -107,9 +109,11 @@ function renderizarTabela(campanhas) {
             const roi = (campanha.roi || 0).toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
             const corResultado = (campanha.resultado || 0) >= 0 ? '#28a745' : '#dc3545';
 
+            // ATUALIZADO: Adicionada a nova célula <td> para checkouts na ordem correta
             tabelaHTML += `<tr>
                 <td><a href="/detalhes.html?id=${campanha.id}">${campanha.id}</a></td><td><a href="/detalhes.html?id=${campanha.id}">${campanha.nome}</a></td>
                 <td>${(campanha.impressoes || 0).toLocaleString('pt-BR')}</td><td>${(campanha.cliques || 0).toLocaleString('pt-BR')}</td><td>${cpcMedio}</td><td>${custo}</td>
+                <td>${checkouts}</td>
                 <td>${(campanha.conversoes || 0).toLocaleString('pt-BR')}</td><td>${valorConversoes}</td><td style="color: ${corResultado}; font-weight: 500;">${resultado}</td><td style="color: ${corResultado}; font-weight: 500;">${roi}</td>
             </tr>`;
         });
