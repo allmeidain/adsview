@@ -3,29 +3,15 @@ let todasCampanhas = [];
 let campanhasSelecionadasIds = [];
 let moedasSelecionadas = [];
 let dadosAtuaisDaTabela = [];
-let isInitialLoad = true;
+// A variável isInitialLoad foi removida para simplificar a lógica.
 let expanded = { campanhas: false, moedas: false };
 
 // --- FUNÇÕES DE LÓGICA E RENDERIZAÇÃO ---
 
-function renderizarDashboard(campanhasParaRenderizar, cotacao, timestamp) {
+function renderizarDashboard(campanhasParaRenderizar, cotacao) {
     dadosAtuaisDaTabela = campanhasParaRenderizar;
     renderizarTotais(dadosAtuaisDaTabela, cotacao);
     renderizarTabela(dadosAtuaisDaTabela);
-    renderizarTimestamp(timestamp);
-}
-
-function renderizarTimestamp(timestamp) {
-    const el = document.getElementById('info-ultima-atualizacao');
-    if (timestamp && timestamp.valor) {
-        const dataFormatada = new Date(timestamp.valor).toLocaleString('pt-BR', {
-            year: 'numeric', month: 'long', day: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
-        el.innerHTML = `<small>Última atualização de dados: ${dataFormatada}</small>`;
-    } else {
-        el.innerHTML = `<small>Aguardando a primeira atualização de dados.</small>`;
-    }
 }
 
 function renderizarTotais(campanhas, cotacao) {
@@ -47,7 +33,7 @@ function renderizarTotais(campanhas, cotacao) {
     const titulo = !dataInicio || dataInicio === dataFim ? 'Dia' : 'Período';
     
     let metricsHTML = `<table class="totals-table"><thead><tr>
-        <th>Moeda</th><th>Custo Total (${titulo})</th><th>Valor Total de Conv. (${titulo})</th><th>Resultado Total (${titulo})</th><th>ROI Total (${titulo})</th>
+        <th>Moeda</th><th>Custo Total (<span class="math-inline">\{titulo\}\)</th\><th\>Valor Total de Conv\. \(</span>{titulo})</th><th>Resultado Total (<span class="math-inline">\{titulo\}\)</th\><th\>ROI Total \(</span>{titulo})</th>
     </tr></thead><tbody>`;
 
     for (const moeda in totaisPorMoeda) {
@@ -56,11 +42,11 @@ function renderizarTotais(campanhas, cotacao) {
         const roiTotal = totais.custo > 0 ? totais.resultado / totais.custo : 0;
         
         metricsHTML += `<tr>
-            <td>${moeda}</td>
-            <td>${totais.custo.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
+            <td><span class="math-inline">\{moeda\}</td\>
+<td\></span>{totais.custo.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
             <td>${totais.valor_conversoes.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
-            <td style="color: ${corResultado}; font-weight: 500;">${totais.resultado.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
-            <td style="color: ${corResultado}; font-weight: 500;">${roiTotal.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
+            <td style="color: <span class="math-inline">\{corResultado\}; font\-weight\: 500;"\></span>{totais.resultado.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
+            <td style="color: <span class="math-inline">\{corResultado\}; font\-weight\: 500;"\></span>{roiTotal.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
         </tr>`;
     }
 
@@ -74,10 +60,10 @@ function renderizarTotais(campanhas, cotacao) {
         
         metricsHTML += `<tr class="total-consolidado-row">
             <td>Total (BRL)</td>
-            <td>${custoConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-            <td>${valorConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-            <td style="color: ${corResultadoConsolidado}; font-weight: 500;">${resultadoConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-            <td style="color: ${corResultadoConsolidado}; font-weight: 500;">${roiConsolidado.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
+            <td><span class="math-inline">\{custoConsolidado\.toLocaleString\('pt\-BR', \{ style\: 'currency', currency\: 'BRL' \}\)\}</td\>
+<td\></span>{valorConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td style="color: <span class="math-inline">\{corResultadoConsolidado\}; font\-weight\: 500;"\></span>{resultadoConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td style="color: <span class="math-inline">\{corResultadoConsolidado\}; font\-weight\: 500;"\></span>{roiConsolidado.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
         </tr>`;
     }
 
@@ -91,7 +77,6 @@ function renderizarTotais(campanhas, cotacao) {
 
 function renderizarTabela(campanhas) {
     const container = document.getElementById('resumo-container');
-    // ATUALIZADO: Adicionado 'Checkouts' no cabeçalho e colspan aumentado para 11
     let tabelaHTML = `<div class="table-wrapper"><table><thead><tr>
         <th>ID da Campanha</th><th>Nome da Campanha</th><th>Impressões</th><th>Cliques</th><th>CPC Médio</th><th>Custo</th><th>Checkouts</th><th>Conversões</th><th>Valor Conv.</th><th>Resultado</th><th>ROI</th>
     </tr></thead><tbody>`;
@@ -101,7 +86,7 @@ function renderizarTabela(campanhas) {
     } else {
         campanhas.forEach(campanha => {
             const moeda = campanha.codigo_moeda || 'BRL';
-            const checkouts = (campanha.checkouts || 0).toLocaleString('pt-BR'); // NOVO: Formata o valor de checkouts
+            const checkouts = (campanha.checkouts || 0).toLocaleString('pt-BR');
             const cpcMedio = (campanha.cpc_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
             const custo = (campanha.custo || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
             const valorConversoes = (campanha.valor_conversoes || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
@@ -109,12 +94,11 @@ function renderizarTabela(campanhas) {
             const roi = (campanha.roi || 0).toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
             const corResultado = (campanha.resultado || 0) >= 0 ? '#28a745' : '#dc3545';
 
-            // ATUALIZADO: Adicionada a nova célula <td> para checkouts na ordem correta
             tabelaHTML += `<tr>
-                <td><a href="/detalhes.html?id=${campanha.id}">${campanha.id}</a></td><td><a href="/detalhes.html?id=${campanha.id}">${campanha.nome}</a></td>
-                <td>${(campanha.impressoes || 0).toLocaleString('pt-BR')}</td><td>${(campanha.cliques || 0).toLocaleString('pt-BR')}</td><td>${cpcMedio}</td><td>${custo}</td>
-                <td>${checkouts}</td>
-                <td>${(campanha.conversoes || 0).toLocaleString('pt-BR')}</td><td>${valorConversoes}</td><td style="color: ${corResultado}; font-weight: 500;">${resultado}</td><td style="color: ${corResultado}; font-weight: 500;">${roi}</td>
+                <td><a href="/detalhes.html?id=<span class="math-inline">\{campanha\.id\}"\></span>{campanha.id}</a></td><td><a href="/detalhes.html?id=<span class="math-inline">\{campanha\.id\}"\></span>{campanha.nome}</a></td>
+                <td><span class="math-inline">\{\(campanha\.impressoes \|\| 0\)\.toLocaleString\('pt\-BR'\)\}</td\><td\></span>{(campanha.cliques || 0).toLocaleString('pt-BR')}</td><td><span class="math-inline">\{cpcMedio\}</td\><td\></span>{custo}</td>
+                <td><span class="math-inline">\{checkouts\}</td\><td\></span>{(campanha.conversoes || 0).toLocaleString('pt-BR')}</td><td>${valorConversoes}</td>
+                <td style="color: <span class="math-inline">\{corResultado\}; font\-weight\: 500;"\></span>{resultado}</td><td style="color: <span class="math-inline">\{corResultado\}; font\-weight\: 500;"\></span>{roi}</td>
             </tr>`;
         });
     }
@@ -135,7 +119,7 @@ function aplicarFiltros(cotacao, timestamp) {
     renderizarDashboard(campanhasFiltradas, cotacao, timestamp);
 }
 
-function popularFiltro(tipo, campanhas, cotacao, timestamp) {
+function popularFiltro(tipo, campanhas) {
     const container = document.getElementById(`checkboxes-${tipo}`);
     if (!container) return;
     container.innerHTML = '';
@@ -147,15 +131,15 @@ function popularFiltro(tipo, campanhas, cotacao, timestamp) {
         itemsUnicos = [...new Set(campanhas.map(c => c.codigo_moeda || 'BRL'))];
     }
 
+    const listaSelecao = tipo === 'campanhas' ? campanhasSelecionadasIds : moedasSelecionadas;
+
     itemsUnicos.forEach(item => {
         const id = tipo === 'campanhas' ? item.id : item;
         const nome = tipo === 'campanhas' ? item.nome : item;
-        const listaSelecao = tipo === 'campanhas' ? campanhasSelecionadasIds : moedasSelecionadas;
-        
         const isChecked = listaSelecao.includes(String(id));
         const label = document.createElement('label');
         label.innerHTML = `<input type="checkbox" value="${id}" ${isChecked ? 'checked' : ''} /> ${nome}`;
-        label.addEventListener('change', () => aplicarFiltros(cotacao, timestamp));
+        label.addEventListener('change', () => aplicarFiltros(JSON.parse(sessionStorage.getItem('cotacao')), JSON.parse(sessionStorage.getItem('timestamp'))));
         container.appendChild(label);
     });
 }
@@ -181,22 +165,21 @@ async function carregarResumo(url) {
         const timestamp = await respostaTimestamp.json();
         
         sessionStorage.setItem('cotacao', JSON.stringify(cotacao));
+        sessionStorage.setItem('timestamp', JSON.stringify(timestamp));
         
-        if (isInitialLoad && todasCampanhas.length > 0) {
-            campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
-            moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
-            isInitialLoad = false;
-        }
+        // LÓGICA ATUALIZADA: Sempre redefine os filtros quando novos dados são carregados
+        campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
+        moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
 
         if (!Array.isArray(todasCampanhas) || todasCampanhas.length === 0) {
             renderizarDashboard([], null, timestamp);
-            popularFiltro('campanhas', [], null, null);
-            popularFiltro('moedas', [], null, null);
+            popularFiltro('campanhas', []);
+            popularFiltro('moedas', []);
             return;
         }
 
-        popularFiltro('campanhas', todasCampanhas, cotacao, timestamp);
-        popularFiltro('moedas', todasCampanhas, cotacao, timestamp);
+        popularFiltro('campanhas', todasCampanhas);
+        popularFiltro('moedas', todasCampanhas);
         aplicarFiltros(cotacao, timestamp);
 
     } catch (erro) {
@@ -223,15 +206,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const ano = hoje.getFullYear();
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
     const dia = String(hoje.getDate()).padStart(2, '0');
-    const hojeFormatadoLocal = `${ano}-${mes}-${dia}`;
+    const hojeFormatadoLocal = `<span class="math-inline">\{ano\}\-</span>{mes}-${dia}`;
     document.getElementById('data-inicio').value = hojeFormatadoLocal;
     document.getElementById('data-fim').value = hojeFormatadoLocal;
 
-    const urlInicial = `/api/resumo?inicio=${hojeFormatadoLocal}&fim=${hojeFormatadoLocal}`;
+    const urlInicial = `/api/resumo?inicio=<span class="math-inline">\{hojeFormatadoLocal\}&fim\=</span>{hojeFormatadoLocal}`;
     carregarResumo(urlInicial);
 
     document.getElementById('btn-filtrar').addEventListener('click', () => {
-        const url = `/api/resumo?inicio=${document.getElementById('data-inicio').value}&fim=${document.getElementById('data-fim').value}`;
+        const url = `/api/resumo?inicio=<span class="math-inline">\{document\.getElementById\('data\-inicio'\)\.value\}&fim\=</span>{document.getElementById('data-fim').value}`;
         carregarResumo(url);
     });
 
@@ -239,10 +222,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dadosAtuaisDaTabela.length === 0) {
             alert("Não há dados para exportar com os filtros atuais."); return;
         }
-        const headers = ["ID Campanha", "Nome Campanha", "Moeda", "Impressoes", "Cliques", "Custo", "Conversoes", "Valor Conversoes", "Resultado", "ROI"];
+        const headers = ["ID Campanha", "Nome Campanha", "Moeda", "Impressoes", "Cliques", "Custo", "Checkouts", "Conversoes", "Valor Conversoes", "Resultado", "ROI"];
         const dataRows = dadosAtuaisDaTabela.map(c => [
             c.id, c.nome, c.codigo_moeda || 'BRL',
-            c.impressoes || 0, c.cliques || 0, c.custo || 0, c.conversoes || 0,
+            c.impressoes || 0, c.cliques || 0, c.custo || 0, c.checkouts || 0, c.conversoes || 0,
             c.valor_conversoes || 0, c.resultado || 0, (c.roi || 0).toFixed(4)
         ]);
         const dataHoje = new Date().toISOString().slice(0, 10);
@@ -252,36 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
         if (todasCampanhas.length === 0) return;
         const cotacao = JSON.parse(sessionStorage.getItem('cotacao'));
-        const timestamp = { valor: document.getElementById('info-ultima-atualizacao').dataset.timestamp }; // Simplified way to get timestamp back
+        const timestamp = JSON.parse(sessionStorage.getItem('timestamp'));
 
-        campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
-        moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
-        
-        popularFiltro('campanhas', todasCampanhas, cotacao, timestamp);
-        popularFiltro('moedas', todasCampanhas, cotacao, timestamp);
-        
-        aplicarFiltros(cotacao, timestamp);
-    });
-});
-
-function exportarParaCSV(headers, dataRows, filename) {
-    let csvContent = headers.join(',') + '\r\n';
-    dataRows.forEach(rowArray => {
-        const row = rowArray.map(field => {
-            let f = String(field === null || field === undefined ? '' : field).replace(/"/g, '""');
-            return `"${f}"`;
-        });
-        csvContent += row.join(',') + '\r\n';
-    });
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-}
+        campanhasSelecion
