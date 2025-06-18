@@ -92,9 +92,11 @@ app.post('/api/webhook', (req, res) => {
             }
         });
     });
-    const timestamp = new Date().toISOString();
-    const sqlTimestamp = `INSERT INTO configuracoes (chave, valor) VALUES ('ultima_atualizacao', ?) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor;`;
-    db.run(sqlTimestamp, [timestamp]);
+    // NOVO: Insere um registro na nova tabela de histórico
+const timestamp = new Date().toISOString();
+const detalhes = `Dados de ${campanhas.length} campanhas foram processados.`;
+const sqlHistorico = `INSERT INTO historico_atualizacoes (timestamp, status, detalhes) VALUES (?, 'Sucesso', ?)`;
+db.run(sqlHistorico, [timestamp, detalhes]);    db.run(sqlTimestamp, [timestamp]);
     res.status(200).send('OK');
 });
 
@@ -102,13 +104,19 @@ app.get('/api/cotacao', async (req, res) => {
     try {
         const apiResponse = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL');
         if (!apiResponse.ok) {
+            // Lança um erro se a resposta não for bem-sucedida (ex: 404, 500)
             throw new Error(`Erro na API de cotação: ${apiResponse.statusText}`);
         }
         const data = await apiResponse.json();
         res.json(data);
     } catch (error) {
-        console.error("Falha ao buscar cotação:", error);
-        res.status(500).json({ error: "Não foi possível obter a cotação da moeda." });
+        // Se ocorrer qualquer erro (incluindo o ECONNRESET do seu firewall),
+        // ele cairá aqui.
+        console.error("Falha ao buscar cotação (ECONNRESET esperado):", error.message);
+        
+        // Em vez de retornar um erro 500, retornamos um sucesso (200)
+        // com um objeto que indica a falha.
+        res.json({ error: true, message: "Não foi possível buscar a cotação da moeda." });
     }
 });
 
@@ -193,13 +201,15 @@ app.get('/api/dados/:id_campanha', (req, res) => {
 });
 
 app.get('/api/ultima-atualizacao', (req, res) => {
-    const sql = `SELECT valor FROM configuracoes WHERE chave = ?`;
-    db.get(sql, ['ultima_atualizacao'], (err, row) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(row || {});
+    // Busca o registro mais recente da nova tabela de histórico
+    const sql = `SELECT timestamp AS valor FROM historico_atualizacoes ORDER BY timestamp DESC LIMIT 1`;
+    db.get(sql, [], (err, row) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(row || {}); // Retorna o objeto { valor: "..." } ou um objeto vazio
     });
 });
-
 app.get('/api/configuracoes/:chave', (req, res) => {
     const { chave } = req.params;
     const sql = `SELECT valor FROM configuracoes WHERE chave = ?`;
@@ -216,25 +226,6 @@ app.post('/api/configuracoes', (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
         res.status(200).json({ success: true });
     });
-});
-
-// ROTA TEMPORÁRIA E SECRETA PARA DOWNLOAD DO BANCO DE DADOS
-app.get('/admin/baixardb', (req, res) => {
-  // Garante que estamos pegando o caminho correto do banco de dados (nuvem ou local)
-  const caminhoDoBanco = process.env.RENDER_DISK_MOUNT_PATH 
-    ? `${process.env.RENDER_DISK_MOUNT_PATH}/database.db` 
-    : './database.db';
-
-  console.log(`[ADMIN] Tentativa de download do banco de dados de: ${caminhoDoBanco}`);
-
-  // O método res.download() prepara o arquivo para ser baixado pelo navegador
-  res.download(caminhoDoBanco, 'backup_banco.db', (err) => {
-    if (err) {
-      console.error("Erro ao baixar o banco de dados:", err);
-      // Se o arquivo não for encontrado ou houver outro erro, informa o usuário.
-      res.status(404).send("Arquivo não encontrado ou erro ao processar o download.");
-    }
-  });
 });
 
 // --- INICIALIZAÇÃO DO BANCO DE DADOS E DO SERVIDOR ---
@@ -260,10 +251,21 @@ const db = new sqlite3.Database(CAMINHO_BD, (err) => {
         );`;
     const sqlCriarTabelaConfig = `CREATE TABLE IF NOT EXISTS configuracoes (chave TEXT PRIMARY KEY, valor TEXT);`;
 
+    // NOVO: SQL para criar a tabela de histórico
+    const sqlCriarTabelaHistorico = `
+        CREATE TABLE IF NOT EXISTS historico_atualizacoes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            status TEXT,
+            detalhes TEXT
+        );`;
+
+
     db.serialize(() => {
         db.run(sqlCriarTabelaCampanhas);
         db.run(sqlCriarTabelaDesempenho);
         db.run(sqlCriarTabelaConfig);
+        db.run(sqlCriarTabelaHistorico); // NOVO: Executa a criação da tabela
     });
 });
 
