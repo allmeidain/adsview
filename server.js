@@ -1,4 +1,8 @@
-// VERSÃO FINAL COM POSTGRES (SUPABASE) E INICIALIZAÇÃO CORRETA
+// VERSÃO 2.0 FINAL 
+// COM POSTGRES (SUPABASE) 
+// E INICIALIZAÇÃO CORRETA
+// TESTADA NO RENDER E LOCALMENTE
+
 const express = require('express');
 const { Pool } = require('pg');
 const fetch = require('node-fetch');
