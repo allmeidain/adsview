@@ -175,9 +175,9 @@ function adicionarListenersDeFiltro() {
             const normalizarData = (data) => {
                 if (!data) return '';
                 const d = new Date(data);
-                const ano = d.getFullYear();
-                const mes = String(d.getMonth() + 1).padStart(2, '0');
-                const dia = String(d.getDate()).padStart(2, '0');
+                const ano = d.getUTCFullYear();
+                const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+                const dia = String(d.getUTCDate()).padStart(2, '0');
                 return `${ano}-${mes}-${dia}`;
             };
 
