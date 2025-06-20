@@ -15,16 +15,24 @@ const pool = new Pool({
 const criarTabelasSeNaoExistir = async () => {
     const createCampaignsTable = `CREATE TABLE IF NOT EXISTS campanhas (id TEXT PRIMARY KEY, nome TEXT, conta TEXT, codigo_moeda TEXT);`;
     const createPerformanceTable = `
-        CREATE TABLE IF NOT EXISTS desempenho_diario (
-            id SERIAL PRIMARY KEY, id_campanha TEXT NOT NULL, "data" DATE NOT NULL,
-            impressoes INTEGER, cliques INTEGER, custo REAL, cpc_medio REAL, ctr REAL,
-            parcela_impressao REAL, parcela_superior REAL, parcela_abs_superior REAL,
-            orcamento_diario REAL, estrategia_lance TEXT, nome_estrategia_lance TEXT, pagina TEXT,
-            checkouts INTEGER DEFAULT 0, conversoes INTEGER, valor_conversoes REAL DEFAULT 0, visitors INTEGER DEFAULT 0,
-            checkouts_editado INTEGER DEFAULT 0, conversoes_editado INTEGER DEFAULT 0, valor_conversoes_editado INTEGER DEFAULT 0, visitors_editado INTEGER DEFAULT 0,
-            alteracoes TEXT, cpa_desejado REAL, cpc_maximo REAL,
-            UNIQUE(id_campanha, "data"), CONSTRAINT fk_campanha FOREIGN KEY(id_campanha) REFERENCES campanhas(id) ON DELETE CASCADE
-        );`;
+    CREATE TABLE IF NOT EXISTS desempenho_diario (
+        id SERIAL PRIMARY KEY, id_campanha TEXT NOT NULL, "data" DATE NOT NULL,
+        impressoes INTEGER, cliques INTEGER, custo REAL, cpc_medio REAL, ctr REAL,
+        parcela_impressao REAL, parcela_superior REAL, parcela_abs_superior REAL,
+        orcamento_diario REAL, estrategia_lance TEXT, nome_estrategia_lance TEXT, pagina TEXT,
+        
+        -- ALTERADO: de INTEGER para REAL para aceitar valores decimais
+        checkouts REAL DEFAULT 0, 
+        conversoes REAL, 
+        valor_conversoes REAL DEFAULT 0, 
+        visitors REAL DEFAULT 0,
+
+        checkouts_editado INTEGER DEFAULT 0, conversoes_editado INTEGER DEFAULT 0, valor_conversoes_editado INTEGER DEFAULT 0,
+        visitors_editado INTEGER DEFAULT 0,
+        alteracoes TEXT, cpa_desejado REAL, cpc_maximo REAL,
+        UNIQUE(id_campanha, "data"),
+        CONSTRAINT fk_campanha FOREIGN KEY(id_campanha) REFERENCES campanhas(id) ON DELETE CASCADE
+    );`;
     const createConfigTable = `CREATE TABLE IF NOT EXISTS configuracoes (chave TEXT PRIMARY KEY, valor TEXT);`;
     const createHistoryTable = `
         CREATE TABLE IF NOT EXISTS historico_atualizacoes (
