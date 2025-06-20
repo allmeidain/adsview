@@ -171,24 +171,36 @@ function adicionarListenersDeFiltro() {
             const dia = String(hoje.getDate()).padStart(2, '0');
             const hojeStr = `${ano}-${mes}-${dia}`;
 
+            // Função para normalizar data para yyyy-mm-dd
+            const normalizarData = (data) => {
+                if (!data) return '';
+                const d = new Date(data);
+                const ano = d.getFullYear();
+                const mes = String(d.getMonth() + 1).padStart(2, '0');
+                const dia = String(d.getDate()).padStart(2, '0');
+                return `${ano}-${mes}-${dia}`;
+            };
+
             if (periodo === 'total') {
                 dadosFiltrados = historicoCompleto;
             } else if (periodo === 'hoje') {
-                dadosFiltrados = historicoCompleto.filter(item => item.data === hojeStr);
+                dadosFiltrados = historicoCompleto.filter(item => normalizarData(item.data) === hojeStr);
             } else {
                 let diasAtras = 0;
                 if (periodo === '7d') diasAtras = 7;
                 if (periodo === '30d') diasAtras = 30;
-                
+
                 const dataInicial = new Date();
                 dataInicial.setDate(hoje.getDate() - (diasAtras - 1));
-                
                 const anoInicial = dataInicial.getFullYear();
                 const mesInicial = String(dataInicial.getMonth() + 1).padStart(2, '0');
                 const diaInicial = String(dataInicial.getDate()).padStart(2, '0');
                 const dataInicialStr = `${anoInicial}-${mesInicial}-${diaInicial}`;
-                
-                dadosFiltrados = historicoCompleto.filter(item => item.data >= dataInicialStr && item.data <= hojeStr);
+
+                dadosFiltrados = historicoCompleto.filter(item => {
+                    const dataItem = normalizarData(item.data);
+                    return dataItem >= dataInicialStr && dataItem <= hojeStr;
+                });
             }
             renderizarPagina(dadosFiltrados);
         });
