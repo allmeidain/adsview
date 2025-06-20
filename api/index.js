@@ -204,3 +204,4 @@ app.get('/', (req, res) => {
 // Não use app.listen() no Vercel!
 // Apenas exporte o app:
 module.exports = app;
+
