@@ -15,5 +15,16 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/allmeidain/adsview.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/allmeidain/adsview/issues"
+  },
+  "homepage": "https://github.com/allmeidain/adsview#readme"
 }
