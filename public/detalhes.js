@@ -1,4 +1,4 @@
-// --- VARIÁVEIS GLOBAIS ---  testando github2
+// --- VARIÁVEIS GLOBAIS ---
 let alteracoes = {};
 let historicoCompleto = [];
 let dadosAtuaisDaTabela = [];
@@ -12,9 +12,9 @@ const MAPA_COLUNAS = {
         formatador: (item, moeda) => {
             if (!item.data) return '';
             const d = new Date(item.data);
-            const dia = String(d.getDate()).padStart(2, '0');
-            const mes = String(d.getMonth() + 1).padStart(2, '0');
-            const ano = d.getFullYear();
+            const dia = String(d.getUTCDate()).padStart(2, '0');
+            const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+            const ano = d.getUTCFullYear();
             return `${dia}/${mes}/${ano}`;
         }
     },
