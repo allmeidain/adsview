@@ -7,7 +7,17 @@ let ordemColunasAtual = [];
 
 // --- MAPA DE COLUNAS ---
 const MAPA_COLUNAS = {
-    data: { nome: 'Data', formatador: (item, moeda) => item.data.split('-').reverse().join('/') },
+    data: { 
+        nome: 'Data', 
+        formatador: (item, moeda) => {
+            if (!item.data) return '';
+            const d = new Date(item.data);
+            const dia = String(d.getDate()).padStart(2, '0');
+            const mes = String(d.getMonth() + 1).padStart(2, '0');
+            const ano = d.getFullYear();
+            return `${dia}/${mes}/${ano}`;
+        }
+    },
     impressoes: { nome: 'Impressões', formatador: (item, moeda) => (item.impressoes || 0).toLocaleString('pt-BR') },
     cliques: { nome: 'Cliques', formatador: (item, moeda) => (item.cliques || 0).toLocaleString('pt-BR') },
     custo: { nome: 'Custo', formatador: (item, moeda) => (item.custo || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda }) },
