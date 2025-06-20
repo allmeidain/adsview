@@ -1,10 +1,10 @@
-// VERSÃO FINAL E ESTÁVEL - PONTO DE RECUPERAÇÃO
+// VERSÃO FINAL COM POSTGRES (SUPABASE) E INICIALIZAÇÃO CORRETA
 const express = require('express');
 const { Pool } = require('pg');
 const fetch = require('node-fetch');
 const basicAuth = require('express-basic-auth');
-const path = require('path');
 const app = express();
+const PORTA = 3000;
 
 // --- CONFIGURAÇÃO DO BANCO DE DADOS (POSTGRES) ---
 const pool = new Pool({
@@ -38,7 +38,8 @@ const criarTabelasSeNaoExistir = async () => {
         console.log("Tabelas verificadas/criadas com sucesso no PostgreSQL.");
     } catch (err) {
         console.error("Erro ao criar as tabelas:", err);
-        process.exit(1); // Para a aplicação se não conseguir criar as tabelas
+        // Se houver erro na criação das tabelas, o processo para aqui.
+        process.exit(1);
     }
 };
 
@@ -52,6 +53,18 @@ const authMiddleware = basicAuth({ users, challenge: true, unauthorizedResponse:
 app.use(express.json());
 
 // --- ROTAS PÚBLICAS ---
+app.get('/api/cotacao', async (req, res) => {
+    try {
+        const apiResponse = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL');
+        if (!apiResponse.ok) throw new Error(`API de cotação falhou: ${apiResponse.statusText}`);
+        const data = await apiResponse.json();
+        res.json(data);
+    } catch (error) {
+        console.error("Falha ao buscar cotação:", error.message);
+        res.json({ error: true, message: "Não foi possível buscar a cotação da moeda." });
+    }
+});
+
 app.post('/api/webhook', async (req, res) => {
     const { campanhas } = req.body;
     if (!campanhas || !Array.isArray(campanhas)) return res.status(400).send("Formato inválido.");
@@ -83,31 +96,17 @@ app.post('/api/webhook', async (req, res) => {
         await client.query('COMMIT');
         res.status(200).send('OK');
     } catch (err) {
-        if(client) await client.query('ROLLBACK');
+        await client.query('ROLLBACK');
         console.error('Erro no processamento do webhook:', err);
         res.status(500).send('Erro interno do servidor');
     } finally {
-        if(client) client.release();
+        client.release();
     }
 });
 
-app.get('/api/cotacao', async (req, res) => {
-    try {
-        const apiResponse = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL');
-        if (!apiResponse.ok) throw new Error(`API de cotação falhou`);
-        const data = await apiResponse.json();
-        res.json(data);
-    } catch (error) {
-        console.error("Falha ao buscar cotação:", error.message);
-        res.json({ error: true, message: "Não foi possível buscar a cotação da moeda." });
-    }
-});
-
-// --- MIDDLEWARE DE AUTENTICAÇÃO E ROTAS PROTEGIDAS ---
-app.use(express.static('public'));
 app.use(authMiddleware);
+app.use(express.static('public'));
 
-// --- ROTAS DE API PROTEGIDAS ---
 app.post('/api/salvar', async (req, res) => {
     const { id, campo, valor } = req.body;
     const camposNumericos = ['checkouts', 'conversoes', 'valor_conversoes', 'visitors'];
@@ -187,10 +186,11 @@ app.post('/api/configuracoes', async (req, res) => {
 });
 
 // --- INICIALIZAÇÃO DO SERVIDOR ---
+// NOVO: Função que garante que o BD está pronto antes de iniciar o servidor
 const startServer = async () => {
   await criarTabelasSeNaoExistir();
-  app.listen(process.env.PORT || 3000, () => {
-    console.log(`🚀 Servidor rodando na porta ${process.env.PORT || 3000}`);
+  app.listen(process.env.PORT || PORTA, () => {
+    console.log(`🚀 Servidor rodando na porta ${process.env.PORT || PORTA}`);
   });
 };
 
