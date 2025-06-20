@@ -228,6 +228,25 @@ app.post('/api/configuracoes', (req, res) => {
     });
 });
 
+// ROTA TEMPORÁRIA E SECRETA PARA DOWNLOAD DO BANCO DE DADOS
+app.get('/admin/baixardb', (req, res) => {
+  // Garante que estamos pegando o caminho correto do banco de dados (nuvem ou local)
+  const caminhoDoBanco = process.env.RENDER_DISK_MOUNT_PATH 
+    ? `${process.env.RENDER_DISK_MOUNT_PATH}/database.db` 
+    : './database.db';
+
+  console.log(`[ADMIN] Tentativa de download do banco de dados de: ${caminhoDoBanco}`);
+
+  // O método res.download() prepara o arquivo para ser baixado pelo navegador
+  res.download(caminhoDoBanco, 'backup_banco.db', (err) => {
+    if (err) {
+      console.error("Erro ao baixar o banco de dados:", err);
+      // Se o arquivo não for encontrado ou houver outro erro, informa o usuário.
+      res.status(404).send("Arquivo não encontrado ou erro ao processar o download.");
+    }
+  });
+});
+
 // --- INICIALIZAÇÃO DO BANCO DE DADOS E DO SERVIDOR ---
 const db = new sqlite3.Database(CAMINHO_BD, (err) => {
     if (err) return console.error("Erro ao abrir o banco de dados:", err.message);
