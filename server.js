@@ -191,8 +191,9 @@ app.post('/api/configuracoes', async (req, res) => {
 // Função que garante que o BD está pronto antes de iniciar o servidor
 const startServer = async () => {
   await criarTabelasSeNaoExistir();
-  app.listen(process.env.PORT || PORTA, () => {
-    console.log(`🚀 Servidor rodando na porta ${process.env.PORT || PORTA}`);
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor rodando na porta ${PORT}`);
   });
 };
 
