@@ -1,4 +1,4 @@
-// VERSÃO FINAL PARA VERCEL - 20/06/2025
+// VERSÃO FINAL PARA VERCEL - COM AUTH CORRIGIDO
 const express = require('express');
 const { Pool } = require('pg');
 const fetch = require('node-fetch');
@@ -40,8 +40,6 @@ const criarTabelasSeNaoExistir = async () => {
         console.error("Erro ao criar as tabelas:", err);
     }
 };
-// Chama a criação das tabelas uma vez quando o módulo é carregado.
-// Em um ambiente serverless, isso pode rodar em cada 'cold start'.
 criarTabelasSeNaoExistir();
 
 // --- LÓGICA DE AUTENTICAÇÃO ---
@@ -53,19 +51,9 @@ const authMiddleware = basicAuth({ users, challenge: true, unauthorizedResponse:
 
 app.use(express.json());
 
-// --- ROTAS PÚBLICAS ---
-app.get('/api/cotacao', async (req, res) => {
-    try {
-        const apiResponse = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL');
-        if (!apiResponse.ok) throw new Error(`API de cotação falhou: ${apiResponse.statusText}`);
-        const data = await apiResponse.json();
-        res.json(data);
-    } catch (error) {
-        console.error("Falha ao buscar cotação:", error.message);
-        res.json({ error: true, message: "Não foi possível buscar a cotação da moeda." });
-    }
-});
+// --- ORDEM DE ROTAS E MIDDLEWARES CORRIGIDA ---
 
+// 1. ROTAS PÚBLICAS (NÃO EXIGEM SENHA)
 app.post('/api/webhook', async (req, res) => {
     const { campanhas } = req.body;
     if (!campanhas || !Array.isArray(campanhas)) return res.status(400).send("Formato inválido.");
@@ -97,39 +85,33 @@ app.post('/api/webhook', async (req, res) => {
         await client.query('COMMIT');
         res.status(200).send('OK');
     } catch (err) {
-        await client.query('ROLLBACK');
+        if(client) await client.query('ROLLBACK');
         console.error('Erro no processamento do webhook:', err);
         res.status(500).send('Erro interno do servidor');
     } finally {
-        client.release();
+        if(client) client.release();
     }
 });
 
-// --- MIDDLEWARE DE AUTENTICAÇÃO ---
-app.use(authMiddleware);
+app.get('/api/cotacao', async (req, res) => {
+    try {
+        const apiResponse = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL');
+        if (!apiResponse.ok) throw new Error(`API de cotação falhou`);
+        const data = await apiResponse.json();
+        res.json(data);
+    } catch (error) {
+        console.error("Falha ao buscar cotação:", error.message);
+        res.json({ error: true, message: "Não foi possível buscar a cotação da moeda." });
+    }
+});
 
-// --- ROTAS PROTEGIDAS ---
+// 2. SERVIR ARQUIVOS ESTÁTICOS (CSS, JS DO LADO DO CLIENTE)
+// Isso é público para que o navegador possa baixar os arquivos para montar a página de login.
 app.use(express.static('public'));
 
-app.post('/api/salvar', async (req, res) => {
-    const { id, campo, valor } = req.body;
-    const camposNumericos = ['checkouts', 'conversoes', 'valor_conversoes', 'visitors'];
-    const camposTexto = ['alteracoes', 'pagina', 'nome_estrategia_lance'];
-    if (![...camposNumericos, ...camposTexto].includes(campo)) return res.status(400).send('Campo ou ID inválido.');
-    try {
-        if (camposNumericos.includes(campo)) {
-            const campoEditadoFlag = `${campo}_editado`;
-            await pool.query(`UPDATE desempenho_diario SET ${campo}=$1, ${campoEditadoFlag}=1 WHERE id=$2`, [valor, id]);
-        } else {
-            await pool.query(`UPDATE desempenho_diario SET ${campo}=$1 WHERE id=$2`, [valor, id]);
-        }
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/api/resumo', async (req, res) => {
+// 3. A PARTIR DAQUI, TUDO EXIGE SENHA
+// As rotas de API que buscam dados para as páginas são protegidas.
+app.get('/api/resumo', authMiddleware, async (req, res) => {
     const { inicio, fim } = req.query;
     let sql, params;
     if (inicio && fim) {
@@ -148,7 +130,7 @@ app.get('/api/resumo', async (req, res) => {
     }
 });
 
-app.get('/api/dados/:id_campanha', async (req, res) => {
+app.get('/api/dados/:id_campanha', authMiddleware, async (req, res) => {
     const { id_campanha } = req.params;
     try {
         const resCampanha = await pool.query(`SELECT * FROM campanhas WHERE id = $1`, [id_campanha]);
@@ -159,39 +141,31 @@ app.get('/api/dados/:id_campanha', async (req, res) => {
     }
 });
 
-app.get('/api/ultima-atualizacao', async (req, res) => {
+app.post('/api/salvar', authMiddleware, async (req, res) => {
+    const { id, campo, valor } = req.body;
+    const camposNumericos = ['checkouts', 'conversoes', 'valor_conversoes', 'visitors'];
+    const camposTexto = ['alteracoes', 'pagina', 'nome_estrategia_lance'];
+    if (![...camposNumericos, ...camposTexto].includes(campo)) return res.status(400).send('Campo ou ID inválido.');
     try {
-        const { rows } = await pool.query(`SELECT timestamp AS valor FROM historico_atualizacoes ORDER BY timestamp DESC LIMIT 1`);
-        res.json(rows[0] || {});
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/api/configuracoes/:chave', async (req, res) => {
-    const { chave } = req.params;
-    try {
-        const { rows } = await pool.query(`SELECT valor FROM configuracoes WHERE chave = $1`, [chave]);
-        res.json(rows[0] || {});
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.post('/api/configuracoes', async (req, res) => {
-    const { chave, valor } = req.body;
-    const sql = `INSERT INTO configuracoes (chave, valor) VALUES ($1, $2) ON CONFLICT(chave) DO UPDATE SET valor=EXCLUDED.valor;`;
-    try {
-        await pool.query(sql, [chave, valor]);
+        if (camposNumericos.includes(campo)) {
+            const campoEditadoFlag = `${campo}_editado`;
+            await pool.query(`UPDATE desempenho_diario SET ${campo}=$1, ${campoEditadoFlag}=1 WHERE id=$2`, [valor, id]);
+        } else {
+            await pool.query(`UPDATE desempenho_diario SET ${campo}=$1 WHERE id=$2`, [valor, id]);
+        }
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Rota fallback para garantir que o index.html seja sempre servido
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get('/api/ultima-atualizacao', authMiddleware, async (req, res) => {
+    try {
+        const { rows } = await pool.query(`SELECT timestamp AS valor FROM historico_atualizacoes ORDER BY timestamp DESC LIMIT 1`);
+        res.json(rows[0] || {});
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Exporta o app para a Vercel
