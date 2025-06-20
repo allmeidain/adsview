@@ -198,7 +198,7 @@ app.use(async (req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('API AdsView rodando!');
+  res.sendFile(require('path').join(__dirname, '../public/index.html'));
 });
 
 // Não use app.listen() no Vercel!
