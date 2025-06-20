@@ -6,6 +6,11 @@ const basicAuth = require('express-basic-auth');
 const app = express();
 const PORTA = 3000;
 
+// ...existing code...
+require('dotenv').config();
+// ...existing code...
+
+
 // --- CONFIGURAÇÃO DO BANCO DE DADOS (POSTGRES) ---
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
