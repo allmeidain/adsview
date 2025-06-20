@@ -1,4 +1,4 @@
-// --- VARIÁVEIS GLOBAIS ---
+// --- VARIÁVEIS GLOBAIS ---  testando render
 let alteracoes = {};
 let historicoCompleto = [];
 let dadosAtuaisDaTabela = [];
