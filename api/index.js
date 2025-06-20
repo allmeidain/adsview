@@ -187,12 +187,24 @@ app.post('/api/configuracoes', async (req, res) => {
     }
 });
 
+// Garante que as tabelas existem antes de cada requisição (pode ser otimizado)
+let tabelasCriadas = false;
+app.use(async (req, res, next) => {
+  if (!tabelasCriadas) {
+    await criarTabelasSeNaoExistir();
+    tabelasCriadas = true;
+  }
+  next();
+});
+
 app.get('/', (req, res) => {
   res.send('API AdsView rodando!');
 });
 
-// --- INICIALIZAÇÃO DO SERVIDOR ---
-// NOVO: Função que garante que o BD está pronto antes de iniciar o servidor
+// Não use app.listen() no Vercel!
+// Apenas exporte o app:
+module.exports = app;
+
 const startServer = async () => {
   await criarTabelasSeNaoExistir();
   app.listen(process.env.PORT || PORTA, () => {
@@ -201,5 +213,3 @@ const startServer = async () => {
 };
 
 startServer();
-
-module.exports = app;
