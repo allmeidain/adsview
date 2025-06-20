@@ -187,6 +187,10 @@ app.post('/api/configuracoes', async (req, res) => {
     }
 });
 
+app.get('/', (req, res) => {
+  res.send('API AdsView rodando!');
+});
+
 // --- INICIALIZAÇÃO DO SERVIDOR ---
 // NOVO: Função que garante que o BD está pronto antes de iniciar o servidor
 const startServer = async () => {
