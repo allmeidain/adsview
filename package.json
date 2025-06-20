@@ -4,8 +4,7 @@
   "description": "Dashboard para campanhas do Google Ads",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "dotenv": "^16.5.0",

@@ -6,10 +6,7 @@ const basicAuth = require('express-basic-auth');
 const app = express();
 const PORTA = 3000;
 
-// ...existing code...
 require('dotenv').config();
-// ...existing code...
-
 
 // --- CONFIGURAÇÃO DO BANCO DE DADOS (POSTGRES) ---
 const pool = new Pool({
@@ -200,3 +197,19 @@ const startServer = async () => {
 };
 
 startServer();
+
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/detalhes.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'detalhes.html'));
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
