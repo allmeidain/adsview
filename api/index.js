@@ -53,6 +53,7 @@ users[adminUser] = adminPass;
 const authMiddleware = basicAuth({ users, challenge: true, unauthorizedResponse: 'Acesso não autorizado.' });
 
 app.use(express.json());
+app.use(express.static('public'));
 
 // --- ROTAS PÚBLICAS ---
 app.get('/api/cotacao', async (req, res) => {
