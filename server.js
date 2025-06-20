@@ -1,277 +1,197 @@
-// --- VARIÁVEIS GLOBAIS DE ESTADO ---
-let todasCampanhas = [];
-let campanhasSelecionadasIds = [];
-let moedasSelecionadas = [];
-let dadosAtuaisDaTabela = [];
-let cotacaoAtual = null;
-let timestampAtual = null;
-let expanded = { campanhas: false, moedas: false };
+// VERSÃO FINAL E ESTÁVEL - PONTO DE RECUPERAÇÃO
+const express = require('express');
+const { Pool } = require('pg');
+const fetch = require('node-fetch');
+const basicAuth = require('express-basic-auth');
+const path = require('path');
+const app = express();
 
-// --- FUNÇÕES DE LÓGICA E RENDERIZAÇÃO ---
-
-function renderizarDashboard(campanhasParaRenderizar) {
-    dadosAtuaisDaTabela = campanhasParaRenderizar;
-    renderizarTotais(campanhasParaRenderizar);
-    renderizarTabela(campanhasParaRenderizar);
-    renderizarTimestamp(timestampAtual);
-}
-
-function renderizarTimestamp(timestamp) {
-    const el = document.getElementById('info-ultima-atualizacao');
-    if (timestamp && timestamp.valor) {
-        const dataFormatada = new Date(timestamp.valor).toLocaleString('pt-BR', {
-            year: 'numeric', month: 'long', day: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
-        el.innerHTML = `<small>Última atualização de dados: ${dataFormatada}</small>`;
-    } else {
-        el.innerHTML = `<small>Aguardando a primeira atualização de dados.</small>`;
-    }
-}
-
-function renderizarTotais(campanhas) {
-    const metricsContainer = document.getElementById('header-metrics');
-    const totaisPorMoeda = {};
-
-    campanhas.forEach(campanha => {
-        const moeda = campanha.codigo_moeda || 'BRL';
-        if (!totaisPorMoeda[moeda]) {
-            totaisPorMoeda[moeda] = { custo: 0, valor_conversoes: 0, resultado: 0 };
-        }
-        totaisPorMoeda[moeda].custo += campanha.custo || 0;
-        totaisPorMoeda[moeda].valor_conversoes += campanha.valor_conversoes || 0;
-        totaisPorMoeda[moeda].resultado += campanha.resultado || 0;
-    });
-
-    const dataInicio = document.getElementById('data-inicio').value;
-    const dataFim = document.getElementById('data-fim').value;
-    const titulo = !dataInicio || dataInicio === dataFim ? 'Dia' : 'Período';
-    
-    let metricsHTML = `<table class="totals-table"><thead><tr>
-        <th>Moeda</th><th>Custo Total (${titulo})</th><th>Valor Total de Conv. (${titulo})</th><th>Resultado Total (${titulo})</th><th>ROI Total (${titulo})</th>
-    </tr></thead><tbody>`;
-
-    for (const moeda in totaisPorMoeda) {
-        const totais = totaisPorMoeda[moeda];
-        const corResultado = totais.resultado >= 0 ? '#28a745' : '#dc3545';
-        const roiTotal = totais.custo > 0 ? totais.resultado / totais.custo : 0;
-        
-        metricsHTML += `<tr>
-            <td>${moeda}</td>
-            <td>${totais.custo.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
-            <td>${totais.valor_conversoes.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
-            <td style="color: ${corResultado}; font-weight: 500;">${totais.resultado.toLocaleString('pt-BR', { style: 'currency', currency: moeda })}</td>
-            <td style="color: ${corResultado}; font-weight: 500;">${roiTotal.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
-        </tr>`;
-    }
-
-    if (cotacaoAtual && cotacaoAtual.rates && cotacaoAtual.rates.BRL && totaisPorMoeda['USD'] && Object.keys(totaisPorMoeda).length > 1) {
-        const taxaCambio = cotacaoAtual.rates.BRL;
-        let custoConsolidado = (totaisPorMoeda['BRL']?.custo || 0) + ((totaisPorMoeda['USD']?.custo || 0) * taxaCambio);
-        let valorConsolidado = (totaisPorMoeda['BRL']?.valor_conversoes || 0) + ((totaisPorMoeda['USD']?.valor_conversoes || 0) * taxaCambio);
-        const resultadoConsolidado = valorConsolidado - custoConsolidado;
-        const roiConsolidado = custoConsolidado > 0 ? resultadoConsolidado / custoConsolidado : 0;
-        const corResultadoConsolidado = resultadoConsolidado >= 0 ? '#28a745' : '#dc3545';
-        
-        metricsHTML += `<tr class="total-consolidado-row">
-            <td>Total (BRL)</td>
-            <td>${custoConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-            <td>${valorConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-            <td style="color: ${corResultadoConsolidado}; font-weight: 500;">${resultadoConsolidado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-            <td style="color: ${corResultadoConsolidado}; font-weight: 500;">${roiConsolidado.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })}</td>
-        </tr>`;
-    }
-
-    metricsHTML += `</tbody></table>`;
-    if (Object.keys(totaisPorMoeda).length === 0) {
-        metricsContainer.innerHTML = '';
-    } else {
-        metricsContainer.innerHTML = metricsHTML;
-    }
-}
-
-function renderizarTabela(campanhas) {
-    const container = document.getElementById('resumo-container');
-    let tabelaHTML = `<div class="table-wrapper"><table><thead><tr>
-        <th>ID da Campanha</th><th>Nome da Campanha</th><th>Impressões</th><th>Cliques</th><th>CPC Médio</th><th>Custo</th><th>Conversões</th><th>Valor Conv.</th><th>Resultado</th><th>ROI</th>
-    </tr></thead><tbody>`;
-    
-    if (campanhas.length === 0) {
-        tabelaHTML += '<tr><td colspan="10">Nenhuma campanha para exibir com os filtros atuais.</td></tr>';
-    } else {
-        campanhas.forEach(campanha => {
-            const moeda = campanha.codigo_moeda || 'BRL';
-            const cpcMedio = (campanha.cpc_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
-            const custo = (campanha.custo || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
-            const valorConversoes = (campanha.valor_conversoes || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
-            const resultado = (campanha.resultado || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda });
-            const roi = (campanha.roi || 0).toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
-            const corResultado = (campanha.resultado || 0) >= 0 ? '#28a745' : '#dc3545';
-
-            tabelaHTML += `<tr>
-                <td><a href="/detalhes.html?id=${campanha.id}">${campanha.id}</a></td><td><a href="/detalhes.html?id=${campanha.id}">${campanha.nome}</a></td>
-                <td>${(campanha.impressoes || 0).toLocaleString('pt-BR')}</td><td>${(campanha.cliques || 0).toLocaleString('pt-BR')}</td><td>${cpcMedio}</td><td>${custo}</td>
-                <td>${(campanha.conversoes || 0).toLocaleString('pt-BR')}</td><td>${valorConversoes}</td><td style="color: ${corResultado}; font-weight: 500;">${resultado}</td><td style="color: ${corResultado}; font-weight: 500;">${roi}</td>
-            </tr>`;
-        });
-    }
-    tabelaHTML += `</tbody></table></div>`;
-    container.innerHTML = tabelaHTML;
-}
-
-function aplicarFiltros() {
-    campanhasSelecionadasIds = Array.from(document.querySelectorAll('#checkboxes-campanhas input:checked')).map(cb => cb.value);
-    moedasSelecionadas = Array.from(document.querySelectorAll('#checkboxes-moedas input:checked')).map(cb => cb.value);
-
-    const campanhasFiltradas = todasCampanhas.filter(c => {
-        const correspondeCampanha = campanhasSelecionadasIds.includes(String(c.id));
-        const correspondeMoeda = moedasSelecionadas.includes(c.codigo_moeda || 'BRL');
-        return correspondeCampanha && correspondeMoeda;
-    });
-    
-    renderizarDashboard(campanhasFiltradas);
-}
-
-function popularFiltro(tipo, campanhas) {
-    const container = document.getElementById(`checkboxes-${tipo}`);
-    if (!container) return;
-    container.innerHTML = '';
-    
-    let itemsUnicos = [];
-    if (tipo === 'campanhas') {
-        itemsUnicos = campanhas;
-    } else if (tipo === 'moedas') {
-        itemsUnicos = [...new Set(campanhas.map(c => c.codigo_moeda || 'BRL'))];
-    }
-    
-    itemsUnicos.forEach(item => {
-        const id = tipo === 'campanhas' ? item.id : item;
-        const nome = tipo === 'campanhas' ? item.nome : item;
-        const listaSelecao = tipo === 'campanhas' ? campanhasSelecionadasIds : moedasSelecionadas;
-        
-        const isChecked = listaSelecao.includes(String(id));
-        const label = document.createElement('label');
-        label.innerHTML = `<input type="checkbox" value="${id}" ${isChecked ? 'checked' : ''} /> ${nome}`;
-        label.addEventListener('change', aplicarFiltros);
-        container.appendChild(label);
-    });
-}
-
-async function carregarResumo(url) {
-    const container = document.getElementById('resumo-container');
-    container.innerHTML = '<p>Carregando dados...</p>';
-    document.getElementById('header-metrics').innerHTML = '';
-
-    try {
-        const [respostaCampanhas, respostaCotacao, respostaTimestamp] = await Promise.all([
-            fetch(url),
-            fetch('/api/cotacao'),
-            fetch('/api/ultima-atualizacao')
-        ]);
-
-        if (!respostaCampanhas.ok) throw new Error(`Erro na API de campanhas.`);
-        
-        todasCampanhas = await respostaCampanhas.json();
-        cotacaoAtual = await respostaCotacao.json();
-        timestampAtual = await respostaTimestamp.json();
-        
-        // Lógica que sempre redefine os filtros ao carregar novos dados
-        campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
-        moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
-
-        if (!Array.isArray(todasCampanhas) || todasCampanhas.length === 0) {
-            renderizarDashboard([], null, timestampAtual);
-            popularFiltro('campanhas', []);
-            popularFiltro('moedas', []);
-            return;
-        }
-
-        popularFiltro('campanhas', todasCampanhas);
-        popularFiltro('moedas', todasCampanhas);
-        aplicarFiltros();
-
-    } catch (erro) {
-        container.innerHTML = `<p>Ocorreu um erro ao carregar o resumo. Verifique o console.</p>`;
-        console.error("Falha ao carregar o resumo:", erro);
-    }
-}
-
-function toggleCheckboxes(tipo) {
-    const checkboxes = document.getElementById(`checkboxes-${tipo}`);
-    if(!checkboxes) return;
-    const outroTipo = tipo === 'campanhas' ? 'moedas' : 'campanhas';
-    const outroCheckbox = document.getElementById(`checkboxes-${outroTipo}`);
-    if (outroCheckbox) {
-        outroCheckbox.style.display = 'none';
-        expanded[outroTipo] = false;
-    }
-    expanded[tipo] = !expanded[tipo];
-    checkboxes.style.display = expanded[tipo] ? "block" : "none";
-}
-
-function exportarParaCSV(headers, dataRows, filename) {
-    let csvContent = headers.join(',') + '\r\n';
-    dataRows.forEach(rowArray => {
-        const row = rowArray.map(field => {
-            let f = String(field === null || field === undefined ? '' : field).replace(/"/g, '""');
-            return `"${f}"`;
-        });
-        csvContent += row.join(',') + '\r\n';
-    });
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const hoje = new Date();
-    const ano = hoje.getFullYear();
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    const hojeFormatadoLocal = `${ano}-${mes}-${dia}`;
-    
-    document.getElementById('data-inicio').value = hojeFormatadoLocal;
-    document.getElementById('data-fim').value = hojeFormatadoLocal;
-
-    const urlInicial = `/api/resumo?inicio=${hojeFormatadoLocal}&fim=${hojeFormatadoLocal}`;
-    carregarResumo(urlInicial);
-
-    document.getElementById('btn-filtrar').addEventListener('click', () => {
-        const url = `/api/resumo?inicio=${document.getElementById('data-inicio').value}&fim=${document.getElementById('data-fim').value}`;
-        carregarResumo(url);
-    });
-
-    document.getElementById('btn-exportar-csv').addEventListener('click', () => {
-        if (dadosAtuaisDaTabela.length === 0) {
-            alert("Não há dados para exportar com os filtros atuais."); return;
-        }
-        const headers = ["ID Campanha", "Nome Campanha", "Moeda", "Impressoes", "Cliques", "Custo", "Checkouts", "Conversoes", "Valor Conversoes", "Resultado", "ROI"];
-        const dataRows = dadosAtuaisDaTabela.map(c => [
-            c.id, c.nome, c.codigo_moeda || 'BRL',
-            c.impressoes || 0, c.cliques || 0, c.custo || 0, c.checkouts || 0, c.conversoes || 0,
-            c.valor_conversoes || 0, c.resultado || 0, (c.roi || 0).toFixed(4)
-        ]);
-        const dataHoje = new Date().toISOString().slice(0, 10);
-        exportarParaCSV(headers, dataRows, `resumo_campanhas_${dataHoje}.csv`);
-    });
-
-    document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-        if (todasCampanhas.length === 0) return;
-        
-        campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
-        moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
-        
-        popularFiltro('campanhas', todasCampanhas);
-        popularFiltro('moedas', todasCampanhas);
-        
-        aplicarFiltros();
-    });
+// --- CONFIGURAÇÃO DO BANCO DE DADOS (POSTGRES) ---
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
+
+const criarTabelasSeNaoExistir = async () => {
+    const createCampaignsTable = `CREATE TABLE IF NOT EXISTS campanhas (id TEXT PRIMARY KEY, nome TEXT, conta TEXT, codigo_moeda TEXT);`;
+    const createPerformanceTable = `
+        CREATE TABLE IF NOT EXISTS desempenho_diario (
+            id SERIAL PRIMARY KEY, id_campanha TEXT NOT NULL, "data" DATE NOT NULL,
+            impressoes INTEGER, cliques INTEGER, custo REAL, cpc_medio REAL, ctr REAL,
+            parcela_impressao REAL, parcela_superior REAL, parcela_abs_superior REAL,
+            orcamento_diario REAL, estrategia_lance TEXT, nome_estrategia_lance TEXT, pagina TEXT,
+            checkouts REAL DEFAULT 0, conversoes REAL DEFAULT 0, valor_conversoes REAL DEFAULT 0, visitors REAL DEFAULT 0,
+            checkouts_editado INTEGER DEFAULT 0, conversoes_editado INTEGER DEFAULT 0, valor_conversoes_editado INTEGER DEFAULT 0, visitors_editado INTEGER DEFAULT 0,
+            alteracoes TEXT, cpa_desejado REAL, cpc_maximo REAL,
+            UNIQUE(id_campanha, "data"), CONSTRAINT fk_campanha FOREIGN KEY(id_campanha) REFERENCES campanhas(id) ON DELETE CASCADE
+        );`;
+    const createConfigTable = `CREATE TABLE IF NOT EXISTS configuracoes (chave TEXT PRIMARY KEY, valor TEXT);`;
+    const createHistoryTable = `
+        CREATE TABLE IF NOT EXISTS historico_atualizacoes (
+            id SERIAL PRIMARY KEY, timestamp TIMESTAMPTZ NOT NULL, status TEXT, detalhes TEXT
+        );`;
+    try {
+        await pool.query(createCampaignsTable);
+        await pool.query(createPerformanceTable);
+        await pool.query(createConfigTable);
+        await pool.query(createHistoryTable);
+        console.log("Tabelas verificadas/criadas com sucesso no PostgreSQL.");
+    } catch (err) {
+        console.error("Erro ao criar as tabelas:", err);
+        process.exit(1); // Para a aplicação se não conseguir criar as tabelas
+    }
+};
+
+// --- LÓGICA DE AUTENTICAÇÃO ---
+const users = {};
+const adminUser = process.env.ADMIN_USERNAME || 'admin';
+const adminPass = process.env.ADMIN_PASSWORD || 'password';
+users[adminUser] = adminPass;
+const authMiddleware = basicAuth({ users, challenge: true, unauthorizedResponse: 'Acesso não autorizado.' });
+
+app.use(express.json());
+
+// --- ROTAS PÚBLICAS ---
+app.post('/api/webhook', async (req, res) => {
+    const { campanhas } = req.body;
+    if (!campanhas || !Array.isArray(campanhas)) return res.status(400).send("Formato inválido.");
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        for (const campanha of campanhas) {
+            const upsertCampanhaSql = `INSERT INTO campanhas (id, nome, conta, codigo_moeda) VALUES ($1, $2, $3, $4) ON CONFLICT(id) DO UPDATE SET nome=EXCLUDED.nome, conta=EXCLUDED.conta, codigo_moeda=EXCLUDED.codigo_moeda;`;
+            await client.query(upsertCampanhaSql, [campanha.id, campanha.nomeCampanha, campanha.conta, campanha.codigoMoeda]);
+            if (campanha.dadosRecentes) {
+                for (const dia of campanha.dadosRecentes) {
+                    const selectSql = `SELECT id, conversoes_editado, checkouts_editado, valor_conversoes_editado, visitors_editado FROM desempenho_diario WHERE id_campanha = $1 AND "data" = $2`;
+                    const { rows } = await client.query(selectSql, [campanha.id, dia.data]);
+                    const custo = (dia.cliques || 0) * (dia.cpcMedio || 0);
+                    if (rows.length > 0) {
+                        const row = rows[0];
+                        const updateSql = `UPDATE desempenho_diario SET impressoes=$1, cliques=$2, custo=$3, cpc_medio=$4, ctr=$5, parcela_impressao=$6, parcela_superior=$7, parcela_abs_superior=$8, orcamento_diario=$9, estrategia_lance=$10, nome_estrategia_lance=$11, cpa_desejado=$12, cpc_maximo=$13, conversoes=CASE WHEN $14=0 THEN $15 ELSE conversoes END, checkouts=CASE WHEN $16=0 THEN $17 ELSE checkouts END, valor_conversoes=CASE WHEN $18=0 THEN $19 ELSE valor_conversoes END, visitors=CASE WHEN $20=0 THEN $21 ELSE visitors END WHERE id=$22`;
+                        await client.query(updateSql, [dia.impressoes, dia.cliques, custo, dia.cpcMedio, dia.ctr, dia.searchImpressionShare, dia.topImpressionPercentage, dia.absoluteTopImpressionPercentage, dia.orcamentoDiario, dia.estrategia, dia.nomeEstrategia, dia.cpaDesejado, dia.cpcMaximo, row.conversoes_editado, dia.conversoes, row.checkouts_editado, dia.checkouts, row.valor_conversoes_editado, dia.valorConversoes, row.visitors_editado, dia.visitors, row.id]);
+                    } else {
+                        const insertSql = `INSERT INTO desempenho_diario (id_campanha, "data", impressoes, cliques, custo, cpc_medio, ctr, parcela_impressao, parcela_superior, parcela_abs_superior, orcamento_diario, estrategia_lance, nome_estrategia_lance, pagina, cpa_desejado, cpc_maximo, conversoes, checkouts, valor_conversoes, visitors, alteracoes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`;
+                        await client.query(insertSql, [campanha.id, dia.data, dia.impressoes, dia.cliques, custo, dia.cpcMedio, dia.ctr, dia.searchImpressionShare, dia.topImpressionPercentage, dia.absoluteTopImpressionPercentage, dia.orcamentoDiario, dia.estrategia, dia.nomeEstrategia, dia.pagina, dia.cpaDesejado, dia.cpcMaximo, dia.conversoes, dia.checkouts, dia.valorConversoes, dia.visitors, dia.alteracoes]);
+                    }
+                }
+            }
+        }
+        const timestamp = new Date();
+        const detalhes = `Dados de ${campanhas.length} campanhas foram processados.`;
+        await client.query(`INSERT INTO historico_atualizacoes (timestamp, status, detalhes) VALUES ($1, 'Sucesso', $2)`, [timestamp, detalhes]);
+        await client.query('COMMIT');
+        res.status(200).send('OK');
+    } catch (err) {
+        if(client) await client.query('ROLLBACK');
+        console.error('Erro no processamento do webhook:', err);
+        res.status(500).send('Erro interno do servidor');
+    } finally {
+        if(client) client.release();
+    }
+});
+
+app.get('/api/cotacao', async (req, res) => {
+    try {
+        const apiResponse = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL');
+        if (!apiResponse.ok) throw new Error(`API de cotação falhou`);
+        const data = await apiResponse.json();
+        res.json(data);
+    } catch (error) {
+        console.error("Falha ao buscar cotação:", error.message);
+        res.json({ error: true, message: "Não foi possível buscar a cotação da moeda." });
+    }
+});
+
+// --- MIDDLEWARE DE AUTENTICAÇÃO E ROTAS PROTEGIDAS ---
+app.use(express.static('public'));
+app.use(authMiddleware);
+
+// --- ROTAS DE API PROTEGIDAS ---
+app.post('/api/salvar', async (req, res) => {
+    const { id, campo, valor } = req.body;
+    const camposNumericos = ['checkouts', 'conversoes', 'valor_conversoes', 'visitors'];
+    const camposTexto = ['alteracoes', 'pagina', 'nome_estrategia_lance'];
+    if (![...camposNumericos, ...camposTexto].includes(campo)) return res.status(400).send('Campo ou ID inválido.');
+    try {
+        if (camposNumericos.includes(campo)) {
+            const campoEditadoFlag = `${campo}_editado`;
+            await pool.query(`UPDATE desempenho_diario SET ${campo}=$1, ${campoEditadoFlag}=1 WHERE id=$2`, [valor, id]);
+        } else {
+            await pool.query(`UPDATE desempenho_diario SET ${campo}=$1 WHERE id=$2`, [valor, id]);
+        }
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/resumo', async (req, res) => {
+    const { inicio, fim } = req.query;
+    let sql, params;
+    if (inicio && fim) {
+        sql = `SELECT c.id, c.nome, c.conta, c.codigo_moeda, SUM(d.impressoes) as impressoes, SUM(d.cliques) as cliques, SUM(d.custo) as custo, SUM(d.checkouts) as checkouts, SUM(d.conversoes) as conversoes, SUM(d.valor_conversoes) as valor_conversoes, (SUM(d.valor_conversoes) - SUM(d.custo)) as resultado, CASE WHEN SUM(d.cliques) > 0 THEN SUM(d.custo) / SUM(d.cliques) ELSE 0 END as cpc_medio, CASE WHEN SUM(d.custo) > 0 THEN (SUM(d.valor_conversoes) - SUM(d.custo)) / SUM(d.custo) ELSE 0 END as roi FROM campanhas c LEFT JOIN desempenho_diario d ON c.id = d.id_campanha WHERE d."data" BETWEEN $1 AND $2 GROUP BY c.id ORDER BY c.nome ASC;`;
+        params = [inicio, fim];
+    } else {
+        const hoje = new Date().toISOString().slice(0, 10);
+        sql = `SELECT c.id, c.nome, c.conta, c.codigo_moeda, d.impressoes, d.cliques, d.custo, d.checkouts, d.conversoes, d.valor_conversoes, d.cpc_medio, (d.valor_conversoes - d.custo) as resultado, CASE WHEN d.custo > 0 THEN (d.valor_conversoes - d.custo) / d.custo ELSE 0 END as roi FROM campanhas c LEFT JOIN desempenho_diario d ON c.id = d.id_campanha AND d."data" = $1 ORDER BY c.nome ASC;`;
+        params = [hoje];
+    }
+    try {
+        const { rows } = await pool.query(sql, params);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/dados/:id_campanha', async (req, res) => {
+    const { id_campanha } = req.params;
+    try {
+        const resCampanha = await pool.query(`SELECT * FROM campanhas WHERE id = $1`, [id_campanha]);
+        const resDesempenho = await pool.query(`SELECT * FROM desempenho_diario WHERE id_campanha = $1 ORDER BY "data" DESC`, [id_campanha]);
+        res.json({ info: resCampanha.rows[0], historico: resDesempenho.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/ultima-atualizacao', async (req, res) => {
+    try {
+        const { rows } = await pool.query(`SELECT timestamp AS valor FROM historico_atualizacoes ORDER BY timestamp DESC LIMIT 1`);
+        res.json(rows[0] || {});
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/configuracoes/:chave', async (req, res) => {
+    const { chave } = req.params;
+    try {
+        const { rows } = await pool.query(`SELECT valor FROM configuracoes WHERE chave = $1`, [chave]);
+        res.json(rows[0] || {});
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/configuracoes', async (req, res) => {
+    const { chave, valor } = req.body;
+    const sql = `INSERT INTO configuracoes (chave, valor) VALUES ($1, $2) ON CONFLICT(chave) DO UPDATE SET valor=EXCLUDED.valor;`;
+    try {
+        await pool.query(sql, [chave, valor]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- INICIALIZAÇÃO DO SERVIDOR ---
+const startServer = async () => {
+  await criarTabelasSeNaoExistir();
+  app.listen(process.env.PORT || 3000, () => {
+    console.log(`🚀 Servidor rodando na porta ${process.env.PORT || 3000}`);
+  });
+};
+
+startServer();
