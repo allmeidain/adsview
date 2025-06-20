@@ -204,12 +204,3 @@ app.get('/', (req, res) => {
 // Não use app.listen() no Vercel!
 // Apenas exporte o app:
 module.exports = app;
-
-const startServer = async () => {
-  await criarTabelasSeNaoExistir();
-  app.listen(process.env.PORT || PORTA, () => {
-    console.log(`🚀 Servidor rodando na porta ${process.env.PORT || PORTA}`);
-  });
-};
-
-startServer();
