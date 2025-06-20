@@ -5,6 +5,7 @@ const fetch = require('node-fetch');
 const basicAuth = require('express-basic-auth');
 const app = express();
 const PORTA = 3000;
+const path = require('path');
 
 // --- CONFIGURAÇÃO DO BANCO DE DADOS (POSTGRES) ---
 const pool = new Pool({
@@ -106,6 +107,11 @@ app.post('/api/webhook', async (req, res) => {
 
 app.use(authMiddleware);
 app.use(express.static('public'));
+
+// Rota fallback para garantir que o index.html seja sempre servido na raiz
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.post('/api/salvar', async (req, res) => {
     const { id, campo, valor } = req.body;
