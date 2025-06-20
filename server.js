@@ -1,11 +1,10 @@
-// VERSÃO FINAL COM POSTGRES (SUPABASE) E INICIALIZAÇÃO CORRETA
+// VERSÃO FINAL PARA VERCEL - 20/06/2025
 const express = require('express');
 const { Pool } = require('pg');
 const fetch = require('node-fetch');
 const basicAuth = require('express-basic-auth');
-const app = express();
-const PORTA = 3000;
 const path = require('path');
+const app = express();
 
 // --- CONFIGURAÇÃO DO BANCO DE DADOS (POSTGRES) ---
 const pool = new Pool({
@@ -39,10 +38,11 @@ const criarTabelasSeNaoExistir = async () => {
         console.log("Tabelas verificadas/criadas com sucesso no PostgreSQL.");
     } catch (err) {
         console.error("Erro ao criar as tabelas:", err);
-        // Se houver erro na criação das tabelas, o processo para aqui.
-        process.exit(1);
     }
 };
+// Chama a criação das tabelas uma vez quando o módulo é carregado.
+// Em um ambiente serverless, isso pode rodar em cada 'cold start'.
+criarTabelasSeNaoExistir();
 
 // --- LÓGICA DE AUTENTICAÇÃO ---
 const users = {};
@@ -105,13 +105,11 @@ app.post('/api/webhook', async (req, res) => {
     }
 });
 
+// --- MIDDLEWARE DE AUTENTICAÇÃO ---
 app.use(authMiddleware);
-app.use(express.static('public'));
 
-// Rota fallback para garantir que o index.html seja sempre servido na raiz
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// --- ROTAS PROTEGIDAS ---
+app.use(express.static('public'));
 
 app.post('/api/salvar', async (req, res) => {
     const { id, campo, valor } = req.body;
@@ -191,13 +189,10 @@ app.post('/api/configuracoes', async (req, res) => {
     }
 });
 
-// --- INICIALIZAÇÃO DO SERVIDOR ---
-// NOVO: Função que garante que o BD está pronto antes de iniciar o servidor
-const startServer = async () => {
-  await criarTabelasSeNaoExistir();
-  app.listen(process.env.PORT || PORTA, () => {
-    console.log(`🚀 Servidor rodando na porta ${process.env.PORT || PORTA}`);
-  });
-};
+// Rota fallback para garantir que o index.html seja sempre servido
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
-startServer();
+// Exporta o app para a Vercel
+module.exports = app;
