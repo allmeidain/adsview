@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Campanhas</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/script.js"></script>
+</head>
+<body>
+
+    <header>
+        <h1>Resumo de Campanhas</h1>
+        <p id="info-ultima-atualizacao"><small>Última atualização: Carregando...</small></p>
+    </header>
+
+    <main>
+        <div id="warning-container"></div>
+
+        <div id="header-metrics"></div>
+
+        <div class="filtro-container">
+            <div>
+                <label for="data-inicio">Data de Início:</label>
+                <input type="date" id="data-inicio">
+                <label for="data-fim">Data de Fim:</label>
+                <input type="date" id="data-fim">
+                <button id="btn-filtrar">Filtrar por Data</button>
+            </div>
+
+            <div class="multi-select-container">
+                <label>Filtrar Campanhas:</label>
+                <div class="select-box" onclick="toggleCheckboxes('campanhas')">
+                    <select><option>Selecione as campanhas...</option></select>
+                    <div class="over-select"></div>
+                </div>
+                <div id="checkboxes-campanhas" class="checkboxes-container">
+                    </div>
+            </div>
+
+            <div class="multi-select-container">
+                <label>Filtrar Moeda:</label>
+                <div class="select-box" onclick="toggleCheckboxes('moedas')">
+                    <select><option>Selecione as moedas...</option></select>
+                    <div class="over-select"></div>
+                </div>
+                <div id="checkboxes-moedas" class="checkboxes-container">
+                    </div>
+            </div>
+
+            <div>
+                <button id="btn-limpar-filtros" class="btn-secundario">Limpar Filtros</button>
+                <button id="btn-exportar-csv" class="btn-secundario">Exportar CSV</button>
+            </div>
+        </div>
+
+        <div id="resumo-container">
+            <p>Carregando dados das campanhas...</p>
+        </div>
+        
+    </main>
+
+</body>
+</html>

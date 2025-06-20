@@ -1,0 +1,370 @@
+/* --- Estilos Gerais --- */
+:root {
+    --cor-primaria: #0056b3;
+    --cor-primaria-hover: #004494;
+    --cor-sucesso: #28a745;
+    --cor-sucesso-hover: #218838;
+    --cor-fundo: #f0f2f5;
+    --cor-container: #ffffff;
+    --cor-texto: #1c1e21;
+    --cor-borda: #ddd;
+    --sombra-card: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    margin: 0;
+    padding: 20px;
+}
+
+main {
+}
+
+a {
+    color: var(--cor-primaria);
+    text-decoration: none;
+    font-weight: 500;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* --- Cabeçalho --- */
+header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--cor-borda);
+}
+header h1 {
+    color: var(--cor-primaria);
+    margin-bottom: 5px;
+}
+header p {
+    margin: 5px 0;
+}
+.destaque-total {
+    color: #333;
+    font-size: 1.5em;
+    margin-top: 15px;
+    font-weight: 500;
+}
+
+/* --- Container de Filtro (Página Principal) --- */
+.filtro-container {
+    display: flex;
+    justify-content: space-between; /* Alinha os itens com espaço entre eles */
+    align-items: flex-end;
+    flex-wrap: wrap; /* Permite quebrar a linha em telas menores */
+    gap: 20px;
+    background-color: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+.filtro-container label {
+    font-weight: 500;
+}
+.filtro-container input[type="date"] {
+    padding: 8px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 6px;
+    font-size: 14px;
+}
+.filtro-container button {
+    padding: 9px 20px;
+    border-radius: 6px;
+    border: none;
+    background-color: var(--cor-primaria);
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.filtro-container button:hover {
+    background-color: var(--cor-primaria-hover);
+}
+
+/* --- Container de Resumo e Tabelas --- */
+#resumo-container, .table-wrapper {
+    background-color: var(--cor-container);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: var(--sombra-card);
+    overflow-x: auto;
+}
+.table-wrapper {
+    padding: 0; /* O wrapper da página de detalhes não precisa de padding extra */
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: nowrap;
+}
+th, td {
+    text-align: left;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--cor-borda);
+}
+td {
+    text-align: center;
+}
+th {
+    background-color: #f7f7f7;
+    font-weight: 600;
+    color: #4b4f56;
+    position: sticky;
+    top: 0;
+    text-align: center;
+}
+tbody tr:hover {
+    background-color: #f5f5f5;
+}
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* --- Estilos da Página de Detalhes --- */
+.salvar-container {
+    text-align: right;
+    margin-bottom: 15px;
+    height: 36px;
+}
+#btn-salvar {
+    background-color: var(--cor-sucesso);
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+#btn-salvar:hover {
+    background-color: var(--cor-sucesso-hover);
+}
+#feedback-salvar {
+    margin-left: 10px;
+    font-weight: bold;
+}
+th.coluna-editavel {
+    background-color: #e6f7ff;
+}
+.input-editavel {
+    width: 100px;
+    padding: 5px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    transition: all 0.2s;
+}
+.input-editavel:focus {
+    border-color: var(--cor-primaria);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 86, 179, 0.2);
+}
+.input-editavel.alterado {
+    background-color: #fff3cd;
+}
+.input-editavel.editado {
+    background-color: #e2e3e5;
+    border-style: dashed;
+}
+
+/* --- Estilos para a Tabela de Totais do Cabeçalho --- */
+#header-metrics {
+    background-color: var(--cor-container);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: var(--sombra-card);
+    margin-top: 20px;
+    overflow-x: auto; /* Garante rolagem em telas pequenas */
+}
+
+.totals-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.totals-table th, .totals-table td {
+    padding: 12px 15px;
+    text-align: center;
+    border-bottom: 1px solid var(--cor-borda);
+}
+
+.totals-table th {
+    font-weight: 600;
+    background-color: #f7f7f7;
+    color: #4b4f56;
+}
+
+.totals-table td:first-child {
+    font-weight: bold;
+    text-align: center;
+}
+
+.totals-table tbody tr:last-child td {
+    border-bottom: none;
+}
+/* --- Estilos para Filtros e Totais da Página de Detalhes --- */
+.header-metrics-container {
+    margin-top: 20px;
+}
+
+#filtro-data-container {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center; /* Mantém os filtros de data no centro */
+    align-items: center;
+    position: relative; /* ESSENCIAL: Serve de âncora para o botão */
+    height: 36px;
+    width: 100%; /* GARANTE que ele ocupe toda a largura disponível */
+}
+
+.filtro-data-botoes {
+    display: inline-flex;
+    border: 1px solid var(--cor-borda);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.filtro-data-botoes button {
+    background-color: #fff;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    border-left: 1px solid var(--cor-borda);
+    transition: background-color 0.2s;
+}
+
+.filtro-data-botoes button:first-child {
+    border-left: none;
+}
+
+.filtro-data-botoes button:hover {
+    background-color: #f0f2f5;
+}
+
+.filtro-data-botoes button.ativo {
+    background-color: var(--cor-primaria);
+    color: white;
+}
+/* --- Estilos para o Filtro Multi-Select --- */
+.filtro-container {
+    align-items: flex-end; /* Alinha os itens na parte inferior */
+}
+
+.multi-select-container {
+    position: relative;
+    display: inline-block;
+}
+
+.select-box {
+    position: relative;
+}
+
+.select-box select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 250px;
+    padding: 9px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.over-select {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+/* Seletor corrigido para usar a classe, aplicando-se a ambos os filtros */
+.checkboxes-container {
+    display: none;
+    position: absolute;
+    border: 1px solid var(--cor-borda);
+    border-radius: 6px;
+    background-color: #fff;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 10;
+    width: 250px;
+}
+
+.checkboxes-container label {
+    display: block;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.checkboxes-container label:hover {
+    background-color: #f0f2f5;
+}
+
+.checkboxes-container input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+#checkboxes-container label:hover {
+    background-color: #f0f2f5;
+}
+
+#checkboxes-container input[type="checkbox"] {
+    margin-right: 8px;
+}
+#btn-exportar-csv-detalhes {
+    position: absolute;
+    right: 0; /* Alinha o botão na extremidade direita do container pai */
+
+    /* Estilos para deixá-lo azul, como o da outra página */
+    padding: 9px 20px;
+    border-radius: 6px;
+    border: none;
+    background-color: var(--cor-primaria);
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#btn-exportar-csv-detalhes:hover {
+    background-color: var(--cor-primaria-hover);
+}
+
+/* --- Estilo para a linha de Total Consolidado --- */
+.totals-table .total-consolidado-row td {
+    background-color: #e9ecef;
+    font-weight: bold;
+    border-top: 2px solid #adb5bd;
+}
+/* --- Estilo para a linha de Total Consolidado --- */
+.totals-table .total-consolidado-row td {
+    background-color: #e9ecef;
+    font-weight: bold;
+    border-top: 2px solid #adb5bd;
+}
+/* --- Estilos para Caixa de Aviso --- */
+.warning-box {
+    background-color: #fff3cd;
+    color: #664d03;
+    border: 1px solid #ffecb5;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+}
