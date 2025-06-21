@@ -125,7 +125,7 @@ function obterDadosRecentes(idCampanha, strategyType) {
             topImpressionPercentage: linha.metrics.searchTopImpressionShare,
             absoluteTopImpressionPercentage: linha.metrics.searchAbsoluteTopImpressionShare,
             estrategia: linha.campaign.biddingStrategyType,
-            nomeEstrategia: linha.biddingStrategy ? linha.biddingStrategy.name : 'N/A',
+            nomeEstrategia: linha.biddingStrategy ? linha.biddingStrategy.name : '',
             orcamentoDiario: linha.campaignBudget.amountMicros / 1000000,
             conta: linha.customer.id,
             codigoMoeda: linha.customer.currencyCode,

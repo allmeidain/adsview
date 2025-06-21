@@ -94,22 +94,20 @@ UPDATE desempenho_diario SET
   parcela_impressao=$6,
   parcela_superior=$7,
   parcela_abs_superior=$8,
-  orcamento_diario=CASE WHEN $9=0 THEN $10 ELSE orcamento_diario END,
-  estrategia_lance=CASE WHEN $11=0 THEN $12 ELSE estrategia_lance END,
-  nome_estrategia_lance=$13,
-  cpa_desejado=$14,
-  cpc_maximo=$15,
-  conversoes=CASE WHEN $16=0 THEN $17 ELSE conversoes END,
-  checkouts=CASE WHEN $18=0 THEN $19 ELSE checkouts END,
-  valor_conversoes=CASE WHEN $20=0 THEN $21 ELSE valor_conversoes END,
-  visitors=CASE WHEN $22=0 THEN $23 ELSE visitors END
-WHERE id=$24
+  -- orcamento_diario e estrategia_lance NÃO são atualizados!
+  nome_estrategia_lance=$9,
+  cpa_desejado=$10,
+  cpc_maximo=$11,
+  conversoes=CASE WHEN $12=0 THEN $13 ELSE conversoes END,
+  checkouts=CASE WHEN $14=0 THEN $15 ELSE checkouts END,
+  valor_conversoes=CASE WHEN $16=0 THEN $17 ELSE valor_conversoes END,
+  visitors=CASE WHEN $18=0 THEN $19 ELSE visitors END
+WHERE id=$20
 `;
                         await client.query(updateSql, [
                           dia.impressoes, dia.cliques, custo, dia.cpcMedio, dia.ctr,
                           dia.searchImpressionShare, dia.topImpressionPercentage, dia.absoluteTopImpressionPercentage,
-                          row.orcamento_diario_editado, dia.orcamentoDiario,
-                          row.estrategia_lance_editado, dia.estrategia,
+                          // pula orcamento_diario e estrategia_lance
                           dia.nomeEstrategia, dia.cpaDesejado, dia.cpcMaximo,
                           row.conversoes_editado, dia.conversoes,
                           row.checkouts_editado, dia.checkouts,
