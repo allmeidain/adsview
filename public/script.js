@@ -96,18 +96,19 @@ function renderizarTotais(campanhas) {
 
 function renderizarTabela(campanhas) {
     const container = document.getElementById('resumo-container');
-    let tabelaHTML = `<div class="table-wrapper"><table><thead><tr>
-        <th onclick="ordenarCampanhasPorColuna('id')">ID da Campanha</th>
-        <th onclick="ordenarCampanhasPorColuna('nome')">Nome da Campanha</th>
-        <th onclick="ordenarCampanhasPorColuna('impressoes')">Impressões</th>
-        <th onclick="ordenarCampanhasPorColuna('cliques')">Cliques</th>
-        <th onclick="ordenarCampanhasPorColuna('cpc_medio')">CPC Médio</th>
-        <th onclick="ordenarCampanhasPorColuna('custo')">Custo</th>
-        <th onclick="ordenarCampanhasPorColuna('checkouts')">Checkouts</th>
-        <th onclick="ordenarCampanhasPorColuna('conversoes')">Conversões</th>
-        <th onclick="ordenarCampanhasPorColuna('valor_conversoes')">Valor Conv.</th>
-        <th onclick="ordenarCampanhasPorColuna('resultado')">Resultado</th>
-        <th onclick="ordenarCampanhasPorColuna('roi')">ROI</th>
+    // Adicionamos um ID ao thead para facilitar a seleção posterior
+    let tabelaHTML = `<div class="table-wrapper"><table><thead id="cabecalho-tabela"><tr>
+        <th data-coluna="id">ID da Campanha</th>
+        <th data-coluna="nome">Nome da Campanha</th>
+        <th data-coluna="impressoes">Impressões</th>
+        <th data-coluna="cliques">Cliques</th>
+        <th data-coluna="cpc_medio">CPC Médio</th>
+        <th data-coluna="custo">Custo</th>
+        <th data-coluna="checkouts">Checkouts</th>
+        <th data-coluna="conversoes">Conversões</th>
+        <th data-coluna="valor_conversoes">Valor Conv.</th>
+        <th data-coluna="resultado">Resultado</th>
+        <th data-coluna="roi">ROI</th>
     </tr></thead><tbody>`;
     
     if (campanhas.length === 0) {
@@ -324,5 +325,17 @@ document.addEventListener('DOMContentLoaded', () => {
         aplicarFiltros();
     });
 
-    window.ordenarCampanhasPorColuna = ordenarCampanhasPorColuna;
+    // --- NOVO CÓDIGO PARA ORDENAÇÃO (DELEGAÇÃO DE EVENTOS) ---
+    // Adicionamos um listener no contêiner da tabela
+    document.getElementById('resumo-container').addEventListener('click', (event) => {
+        // Verificamos se o clique foi em um cabeçalho (th) com o atributo data-coluna
+        const th = event.target.closest('th');
+        if (th && th.dataset.coluna) {
+            ordenarCampanhasPorColuna(th.dataset.coluna);
+        }
+    });
+    // --- CÓDIGO A SER REMOVIDO ---
+    // A linha abaixo não é mais necessária e pode ser removida
+    // window.ordenarCampanhasPorColuna = ordenarCampanhasPorColuna; 
+    
 });
