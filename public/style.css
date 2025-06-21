@@ -368,3 +368,31 @@ th.coluna-editavel {
     margin-bottom: 20px;
     text-align: center;
 }
+/* Adicione este CSS ao seu arquivo de estilo */
+th[data-coluna] {
+    cursor: pointer;
+    position: relative;
+    padding-right: 20px; /* Espaço para a seta */
+}
+
+th[data-coluna]::after {
+    content: '';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 4px solid transparent;
+    opacity: 0.3;
+}
+
+th[data-coluna].sorted-asc::after {
+    content: '';
+    border-bottom-color: #333;
+    opacity: 1;
+}
+
+th[data-coluna].sorted-desc::after {
+    content: '';
+    border-top-color: #333;
+    opacity: 1;
+}

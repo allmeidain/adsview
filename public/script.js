@@ -136,7 +136,7 @@ function renderizarTabela(campanhas) {
     container.innerHTML = tabelaHTML;
 }
 
-// Função para ordenar campanhas
+// Função para ordenar campanhas (VERSÃO CORRIGIDA E COM FEEDBACK VISUAL)
 function ordenarCampanhasPorColuna(coluna) {
     if (colunaOrdenada === coluna) {
         ordemCrescente = !ordemCrescente;
@@ -144,21 +144,40 @@ function ordenarCampanhasPorColuna(coluna) {
         colunaOrdenada = coluna;
         ordemCrescente = true;
     }
+
+    // Ordena o array de dados
     dadosAtuaisDaTabela.sort((a, b) => {
-        let valA = a[coluna], valB = b[coluna];
+        let valA = a[coluna] === null || a[coluna] === undefined ? '' : a[coluna];
+        let valB = b[coluna] === null || b[coluna] === undefined ? '' : b[coluna];
+
         // Trata valores numéricos e strings
-        if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
-            valA = parseFloat(valA);
-            valB = parseFloat(valB);
+        if (typeof valA === 'number' && typeof valB === 'number') {
+            // Comparação numérica direta
+        } else if (!isNaN(Number(valA)) && !isNaN(Number(valB)) && valA !== '' && valB !== '') {
+            valA = Number(valA);
+            valB = Number(valB);
         } else {
-            valA = valA ? String(valA).toLowerCase() : '';
-            valB = valB ? String(valB).toLowerCase() : '';
+            valA = String(valA).toLowerCase();
+            valB = String(valB).toLowerCase();
         }
+
         if (valA < valB) return ordemCrescente ? -1 : 1;
         if (valA > valB) return ordemCrescente ? 1 : -1;
         return 0;
     });
+
+    // Re-renderiza a tabela com os dados ordenados
     renderizarTabela(dadosAtuaisDaTabela);
+
+    // Adiciona o feedback visual na coluna correta
+    document.querySelectorAll('#cabecalho-tabela th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+    });
+
+    const thAtivo = document.querySelector(`#cabecalho-tabela th[data-coluna="${coluna}"]`);
+    if (thAtivo) {
+        thAtivo.classList.add(ordemCrescente ? 'sorted-asc' : 'sorted-desc');
+    }
 }
 
 function aplicarFiltros() {
@@ -281,6 +300,7 @@ function exportarParaCSV(headers, dataRows, filename) {
     }
 }
 
+// Bloco DOMContentLoaded (VERSÃO CORRIGIDA E LIMPA)
 document.addEventListener('DOMContentLoaded', () => {
     const hoje = new Date();
     const ano = hoje.getFullYear();
@@ -313,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         exportarParaCSV(headers, dataRows, `resumo_campanhas_${dataHoje}.csv`);
     });
 
+    // Apenas UM listener para limpar os filtros
     document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
         if (todasCampanhas.length === 0) return;
         
@@ -325,17 +346,11 @@ document.addEventListener('DOMContentLoaded', () => {
         aplicarFiltros();
     });
 
-    // --- NOVO CÓDIGO PARA ORDENAÇÃO (DELEGAÇÃO DE EVENTOS) ---
-    // Adicionamos um listener no contêiner da tabela
+    // Listener para ordenação (Delegação de Eventos)
     document.getElementById('resumo-container').addEventListener('click', (event) => {
-        // Verificamos se o clique foi em um cabeçalho (th) com o atributo data-coluna
         const th = event.target.closest('th');
         if (th && th.dataset.coluna) {
             ordenarCampanhasPorColuna(th.dataset.coluna);
         }
     });
-    // --- CÓDIGO A SER REMOVIDO ---
-    // A linha abaixo não é mais necessária e pode ser removida
-    // window.ordenarCampanhasPorColuna = ordenarCampanhasPorColuna; 
-    
 });
