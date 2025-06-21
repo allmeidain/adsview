@@ -37,7 +37,7 @@ const MAPA_COLUNAS = {
         nome: 'Parc.<br>Impressão', 
         formatador: (item, moeda) => {
             const valor = (item.parcela_impressao || 0) * 100;
-            if (valor < 10 && valor > 0) return '<10%';
+            if (valor < 0.01 && valor > 0) return '<10%';
             return valor.toFixed(2) + '%';
         }
     },
