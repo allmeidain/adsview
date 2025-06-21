@@ -176,7 +176,15 @@ async function carregarResumo(url) {
         todasCampanhas = await respostaCampanhas.json();
         cotacaoAtual = await respostaCotacao.json();
         timestampAtual = await respostaTimestamp.json();
-        
+
+        // --- AJUSTE: garantir que parcela_abs_superior exista mesmo que venha como absoluteTopImpressionPercentage ---
+        todasCampanhas.forEach(c => {
+            if (c.absoluteTopImpressionPercentage !== undefined && c.parcela_abs_superior === undefined) {
+                c.parcela_abs_superior = c.absoluteTopImpressionPercentage;
+            }
+        });
+        // --- FIM DO AJUSTE ---
+
         // Lógica simplificada: Sempre redefine os filtros ao carregar novos dados
         campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
         moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
