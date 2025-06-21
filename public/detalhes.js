@@ -22,8 +22,16 @@ const MAPA_COLUNAS = {
     cliques: { nome: 'Cliques', formatador: (item, moeda) => (item.cliques || 0).toLocaleString('pt-BR') },
     custo: { nome: 'Custo', formatador: (item, moeda) => (item.custo || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda }) },
     cpc_medio: { nome: 'CPC<br>Médio', formatador: (item, moeda) => (item.cpc_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda }) },
-    cpa_desejado: { nome: 'CPA<br>Desejado', formatador: (item, moeda) => (item.cpa_desejado || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda }) },
-    cpc_maximo: { nome: 'CPC<br>Máximo', formatador: (item, moeda) => (item.cpc_maximo || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda }) },
+    cpa_desejado: { 
+        nome: 'CPA<br>Desejado', 
+        formatador: (item, moeda) => (item.cpa_desejado || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda }),
+        editavel: true
+    },
+    cpc_maximo: { 
+        nome: 'CPC<br>Máximo', 
+        formatador: (item, moeda) => (item.cpc_maximo || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda }),
+        editavel: true
+    },
     ctr: { nome: 'CTR<br>(%)', formatador: (item, moeda) => ((item.ctr || 0) * 100).toFixed(2) + '%' },
     parcela_impressao: { nome: 'Parc.<br>Impressão', formatador: (item, moeda) => ((item.parcela_impressao || 0) * 100).toFixed(2) + '%' },
     parcela_superior: { nome: 'Parte.<br>Superior', formatador: (item, moeda) => ((item.parcela_superior || 0) * 100).toFixed(2) + '%' },
@@ -269,10 +277,10 @@ function construirCorpoTabela(historico, ordemColunas, moeda) {
                     } else {
                         const classEditado = item[`${chave}_editado`] ? 'editado' : '';
                         const valorFormatado = 
-    (chave === 'valor_conversoes' || chave === 'orcamento_diario') 
-        ? (item[chave] || 0).toFixed(2) 
+    (chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo')
+        ? (item[chave] || 0).toFixed(2)
         : (item[chave] || 0);
-                        corpoHTML += `<td><input type="number" value="${valorFormatado}" data-id="${item.id}" data-campo="${chave}" class="input-editavel ${classEditado}" step="${chave === 'valor_conversoes' ? '0.01' : '1'}"></td>`;
+                        corpoHTML += `<td><input type="number" value="${valorFormatado}" data-id="${item.id}" data-campo="${chave}" class="input-editavel ${classEditado}" step="${(chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo') ? '0.01' : '1'}"></td>`;
                     }
                 } else {
                     corpoHTML += `<td>${coluna.formatador(item, moeda)}</td>`;
@@ -313,7 +321,7 @@ async function salvarOrdemColunas(ordem) {
 
 function adicionarListenersDeInput() {
     document.querySelectorAll('.input-editavel').forEach(input => {
-        if (input.dataset.campo === 'valor_conversoes') {
+        if (['valor_conversoes', 'orcamento_diario', 'cpa_desejado', 'cpc_maximo'].includes(input.dataset.campo)) {
             input.addEventListener('blur', (e) => { e.target.value = parseFloat(e.target.value || 0).toFixed(2); });
         }
         input.addEventListener('change', (e) => {

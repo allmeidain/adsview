@@ -108,15 +108,14 @@ UPDATE desempenho_diario SET
   parcela_impressao=$6,
   parcela_superior=$7,
   parcela_abs_superior=$8,
-  -- orcamento_diario e estrategia_lance NÃO são atualizados!
+  -- orcamento_diario, estrategia_lance, cpa_desejado e cpc_maximo NÃO são atualizados!
   nome_estrategia_lance=$9,
-  cpa_desejado=$10,
-  cpc_maximo=$11,
-  conversoes=CASE WHEN $12=0 THEN $13 ELSE conversoes END,
-  checkouts=CASE WHEN $14=0 THEN $15 ELSE checkouts END,
-  valor_conversoes=CASE WHEN $16=0 THEN $17 ELSE valor_conversoes END,
-  visitors=CASE WHEN $18=0 THEN $19 ELSE visitors END
-WHERE id=$20
+  -- outros campos editáveis manualmente
+  conversoes=CASE WHEN $10=0 THEN $11 ELSE conversoes END,
+  checkouts=CASE WHEN $12=0 THEN $13 ELSE checkouts END,
+  valor_conversoes=CASE WHEN $14=0 THEN $15 ELSE valor_conversoes END,
+  visitors=CASE WHEN $16=0 THEN $17 ELSE visitors END
+WHERE id=$18
 `;
                         await client.query(updateSql, [
                           dia.impressoes, dia.cliques, custo, dia.cpcMedio, dia.ctr,

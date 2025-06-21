@@ -44,7 +44,7 @@ function main() {
                     nomeCampanha: campanha.getName(),
                     conta: dadosRecentes.length > 0 ? dadosRecentes[0].conta : 'N/A',
                     codigoMoeda: dadosRecentes.length > 0 ? dadosRecentes[0].codigoMoeda : 'BRL',
-                    status: campanha.getStatus(), // <-- Adicione esta linha
+                    status: campanha.status, // <-- ajuste aqui
                     dadosRecentes: dadosRecentes,
                     blocos: {}
                 });
