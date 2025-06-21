@@ -28,8 +28,6 @@ function main() {
         const campaignIterator = SOMENTE_ATIVAS
             ? AdsApp.campaigns().withCondition("campaign.status = 'ENABLED'").get()
             : AdsApp.campaigns().get();
-//        Logger.log(`Encontradas ${campaignIterator.totalNumEntities()} campanhas ativas nesta conta.`);
-
         while (campaignIterator.hasNext()) {
             const campanha = campaignIterator.next();
             const idCampanha = campanha.getId();
