@@ -1,6 +1,6 @@
 const webhookUrl = "https://dashboard-campanhas.onrender.com/api/webhook";
 
-// VERSÃO FINAL - 15/06/2025
+// VERSÃO FINAL - 21/06/2025
 
 /**
  * Função principal que itera através das contas em uma MCC,
