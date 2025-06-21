@@ -27,7 +27,10 @@ const MAPA_COLUNAS = {
     ctr: { nome: 'CTR<br>(%)', formatador: (item, moeda) => ((item.ctr || 0) * 100).toFixed(2) + '%' },
     parcela_impressao: { nome: 'Parc.<br>Impressão', formatador: (item, moeda) => ((item.parcela_impressao || 0) * 100).toFixed(2) + '%' },
     parcela_superior: { nome: 'Parte.<br>Superior', formatador: (item, moeda) => ((item.parcela_superior || 0) * 100).toFixed(2) + '%' },
-    parcela_abs_superior: { nome: '1ª<br>Posição', formatador: (item, moeda) => ((item.parcela_abs_superior || 0) * 100).toFixed(2) + '%' },
+    parcela_abs_superior: { 
+        nome: '1ª<br>Posição', 
+        formatador: (item, moeda) => ((item.parcela_abs_superior || 0) * 100).toFixed(2) + '%' 
+    },
     visitors: { nome: 'Visitors', editavel: true },
     checkouts: { nome: 'Checkouts', editavel: true },
     conversoes: { nome: 'Conversões', editavel: true },
