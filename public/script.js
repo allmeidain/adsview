@@ -7,6 +7,10 @@ let cotacaoAtual = null;
 let timestampAtual = null;
 let expanded = { campanhas: false, moedas: false };
 
+// Variáveis globais para ordenação
+let colunaOrdenada = null;
+let ordemCrescente = true;
+
 // --- FUNÇÕES DE LÓGICA E RENDERIZAÇÃO ---
 
 function renderizarDashboard(campanhasParaRenderizar) {
@@ -93,7 +97,17 @@ function renderizarTotais(campanhas) {
 function renderizarTabela(campanhas) {
     const container = document.getElementById('resumo-container');
     let tabelaHTML = `<div class="table-wrapper"><table><thead><tr>
-        <th>ID da Campanha</th><th>Nome da Campanha</th><th>Impressões</th><th>Cliques</th><th>CPC Médio</th><th>Custo</th><th>Checkouts</th><th>Conversões</th><th>Valor Conv.</th><th>Resultado</th><th>ROI</th>
+        <th onclick="ordenarCampanhasPorColuna('id')">ID da Campanha</th>
+        <th onclick="ordenarCampanhasPorColuna('nome')">Nome da Campanha</th>
+        <th onclick="ordenarCampanhasPorColuna('impressoes')">Impressões</th>
+        <th onclick="ordenarCampanhasPorColuna('cliques')">Cliques</th>
+        <th onclick="ordenarCampanhasPorColuna('cpc_medio')">CPC Médio</th>
+        <th onclick="ordenarCampanhasPorColuna('custo')">Custo</th>
+        <th onclick="ordenarCampanhasPorColuna('checkouts')">Checkouts</th>
+        <th onclick="ordenarCampanhasPorColuna('conversoes')">Conversões</th>
+        <th onclick="ordenarCampanhasPorColuna('valor_conversoes')">Valor Conv.</th>
+        <th onclick="ordenarCampanhasPorColuna('resultado')">Resultado</th>
+        <th onclick="ordenarCampanhasPorColuna('roi')">ROI</th>
     </tr></thead><tbody>`;
     
     if (campanhas.length === 0) {
@@ -119,6 +133,31 @@ function renderizarTabela(campanhas) {
     }
     tabelaHTML += `</tbody></table></div>`;
     container.innerHTML = tabelaHTML;
+}
+
+// Função para ordenar campanhas
+function ordenarCampanhasPorColuna(coluna) {
+    if (colunaOrdenada === coluna) {
+        ordemCrescente = !ordemCrescente;
+    } else {
+        colunaOrdenada = coluna;
+        ordemCrescente = true;
+    }
+    dadosAtuaisDaTabela.sort((a, b) => {
+        let valA = a[coluna], valB = b[coluna];
+        // Trata valores numéricos e strings
+        if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
+            valA = parseFloat(valA);
+            valB = parseFloat(valB);
+        } else {
+            valA = valA ? String(valA).toLowerCase() : '';
+            valB = valB ? String(valB).toLowerCase() : '';
+        }
+        if (valA < valB) return ordemCrescente ? -1 : 1;
+        if (valA > valB) return ordemCrescente ? 1 : -1;
+        return 0;
+    });
+    renderizarTabela(dadosAtuaisDaTabela);
 }
 
 function aplicarFiltros() {
