@@ -75,8 +75,22 @@ app.post('/api/webhook', async (req, res) => {
     try {
         await client.query('BEGIN');
         for (const campanha of campanhas) {
-            const upsertCampanhaSql = `INSERT INTO campanhas (id, nome, conta, codigo_moeda) VALUES ($1, $2, $3, $4) ON CONFLICT(id) DO UPDATE SET nome=EXCLUDED.nome, conta=EXCLUDED.conta, codigo_moeda=EXCLUDED.codigo_moeda;`;
-            await client.query(upsertCampanhaSql, [campanha.id, campanha.nomeCampanha, campanha.conta, campanha.codigoMoeda]);
+            const upsertCampanhaSql = `
+INSERT INTO campanhas (id, nome, conta, codigo_moeda, status)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT(id) DO UPDATE SET
+  nome=EXCLUDED.nome,
+  conta=EXCLUDED.conta,
+  codigo_moeda=EXCLUDED.codigo_moeda,
+  status=EXCLUDED.status;
+`;
+            await client.query(upsertCampanhaSql, [
+              campanha.id,
+              campanha.nomeCampanha,
+              campanha.conta,
+              campanha.codigoMoeda,
+              campanha.status // <-- novo campo vindo do script
+            ]);
             if (campanha.dadosRecentes) {
                 for (const dia of campanha.dadosRecentes) {
                     const selectSql = `SELECT id, conversoes_editado, checkouts_editado, valor_conversoes_editado, visitors_editado FROM desempenho_diario WHERE id_campanha = $1 AND "data" = $2`;

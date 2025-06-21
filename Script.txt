@@ -1,5 +1,7 @@
 const webhookUrl = "https://dashboard-campanhas.onrender.com/api/webhook";
 
+const SOMENTE_ATIVAS = true; // true = só campanhas ativas, false = todas
+
 // VERSÃO FINAL - 21/06/2025
 
 /**
@@ -23,9 +25,9 @@ function main() {
 //        Logger.log(`>>> Processando conta: ${account.getName()} (ID: ${account.getCustomerId()})`);
 
         // Busca as campanhas ativas dentro da conta selecionada.
-        const campaignIterator = AdsApp.campaigns()
-            .withCondition("campaign.status = 'ENABLED'")
-            .get();
+        const campaignIterator = SOMENTE_ATIVAS
+            ? AdsApp.campaigns().withCondition("campaign.status = 'ENABLED'").get()
+            : AdsApp.campaigns().get();
 //        Logger.log(`Encontradas ${campaignIterator.totalNumEntities()} campanhas ativas nesta conta.`);
 
         while (campaignIterator.hasNext()) {
@@ -44,6 +46,7 @@ function main() {
                     nomeCampanha: campanha.getName(),
                     conta: dadosRecentes.length > 0 ? dadosRecentes[0].conta : 'N/A',
                     codigoMoeda: dadosRecentes.length > 0 ? dadosRecentes[0].codigoMoeda : 'BRL',
+                    status: campanha.getStatus(), // <-- Adicione esta linha
                     dadosRecentes: dadosRecentes,
                     blocos: {}
                 });
