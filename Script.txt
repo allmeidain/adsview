@@ -1,4 +1,4 @@
-const webhookUrl = "https://2ee3-2804-14d-5493-8093-7570-ad65-a071-3a5.ngrok-free.app/api/webhook"; // ⚠️ ATUALIZE COM SUA URL DO NGROK
+const webhookUrl = "https://dashboard-campanhas.onrender.com/api/webhook";
 
 // VERSÃO FINAL - 15/06/2025
 
@@ -20,13 +20,13 @@ function main() {
 
         // Seleciona a conta atual. A partir daqui, o script opera dentro desta conta.
         AdsManagerApp.select(account);
-        Logger.log(`>>> Processando conta: ${account.getName()} (ID: ${account.getCustomerId()})`);
+//        Logger.log(`>>> Processando conta: ${account.getName()} (ID: ${account.getCustomerId()})`);
 
         // Busca as campanhas ativas dentro da conta selecionada.
         const campaignIterator = AdsApp.campaigns()
             .withCondition("campaign.status = 'ENABLED'")
             .get();
-        Logger.log(`Encontradas ${campaignIterator.totalNumEntities()} campanhas ativas nesta conta.`);
+//        Logger.log(`Encontradas ${campaignIterator.totalNumEntities()} campanhas ativas nesta conta.`);
 
         while (campaignIterator.hasNext()) {
             const campanha = campaignIterator.next();
@@ -133,7 +133,7 @@ function obterDadosRecentes(idCampanha, strategyType) {
             cpcMaximo: 0,
         };
         
-        // Preenche o CPA Desejado ou CPC Máximo com base na estratégia da campanha.
+            // Preenche o CPA Desejado ou CPC Máximo com base na estratégia da campanha.
         if (strategyType === 'TARGET_CPA' && linha.campaign.targetCpa) {
             dataObject.cpaDesejado = parseFloat(linha.campaign.targetCpa.targetCpaMicros) / 1000000;
         } else if (strategyType === 'MAXIMIZE_CONVERSIONS' && linha.campaign.maximizeConversions) {
