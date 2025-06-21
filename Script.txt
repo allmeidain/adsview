@@ -121,7 +121,7 @@ const visitorsCalculado = 0;
             cpcMedio: linha.metrics.averageCpc / 1000000,
             searchImpressionShare: linha.metrics.searchImpressionShare,
             topImpressionPercentage: linha.metrics.searchTopImpressionShare,
-            absoluteTopImpressionPercentage: linha.metrics.searchAbsoluteTopImpressionPercentage,
+            absoluteTopImpressionPercentage: linha.metrics.searchAbsoluteTopImpressionShare,
             estrategia: linha.campaign.biddingStrategyType,
             
             nomeEstrategia: linha.biddingStrategy ? linha.biddingStrategy.name : '',
