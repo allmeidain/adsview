@@ -84,8 +84,39 @@ app.post('/api/webhook', async (req, res) => {
                     const custo = (dia.cliques || 0) * (dia.cpcMedio || 0);
                     if (rows.length > 0) {
                         const row = rows[0];
-                        const updateSql = `UPDATE desempenho_diario SET impressoes=$1, cliques=$2, custo=$3, cpc_medio=$4, ctr=$5, parcela_impressao=$6, parcela_superior=$7, parcela_abs_superior=$8, orcamento_diario=$9, estrategia_lance=$10, nome_estrategia_lance=$11, cpa_desejado=$12, cpc_maximo=$13, conversoes=CASE WHEN $14=0 THEN $15 ELSE conversoes END, checkouts=CASE WHEN $16=0 THEN $17 ELSE checkouts END, valor_conversoes=CASE WHEN $18=0 THEN $19 ELSE valor_conversoes END, visitors=CASE WHEN $20=0 THEN $21 ELSE visitors END WHERE id=$22`;
-                        await client.query(updateSql, [dia.impressoes, dia.cliques, custo, dia.cpcMedio, dia.ctr, dia.searchImpressionShare, dia.topImpressionPercentage, dia.absoluteTopImpressionPercentage, dia.orcamentoDiario, dia.estrategia, dia.nomeEstrategia, dia.cpaDesejado, dia.cpcMaximo, row.conversoes_editado, dia.conversoes, row.checkouts_editado, dia.checkouts, row.valor_conversoes_editado, dia.valorConversoes, row.visitors_editado, dia.visitors, row.id]);
+                        const updateSql = `
+UPDATE desempenho_diario SET
+  impressoes=$1,
+  cliques=$2,
+  custo=$3,
+  cpc_medio=$4,
+  ctr=$5,
+  parcela_impressao=$6,
+  parcela_superior=$7,
+  parcela_abs_superior=$8,
+  orcamento_diario=CASE WHEN $9=0 THEN $10 ELSE orcamento_diario END,
+  estrategia_lance=CASE WHEN $11=0 THEN $12 ELSE estrategia_lance END,
+  nome_estrategia_lance=$13,
+  cpa_desejado=$14,
+  cpc_maximo=$15,
+  conversoes=CASE WHEN $16=0 THEN $17 ELSE conversoes END,
+  checkouts=CASE WHEN $18=0 THEN $19 ELSE checkouts END,
+  valor_conversoes=CASE WHEN $20=0 THEN $21 ELSE valor_conversoes END,
+  visitors=CASE WHEN $22=0 THEN $23 ELSE visitors END
+WHERE id=$24
+`;
+                        await client.query(updateSql, [
+                          dia.impressoes, dia.cliques, custo, dia.cpcMedio, dia.ctr,
+                          dia.searchImpressionShare, dia.topImpressionPercentage, dia.absoluteTopImpressionPercentage,
+                          row.orcamento_diario_editado, dia.orcamentoDiario,
+                          row.estrategia_lance_editado, dia.estrategia,
+                          dia.nomeEstrategia, dia.cpaDesejado, dia.cpcMaximo,
+                          row.conversoes_editado, dia.conversoes,
+                          row.checkouts_editado, dia.checkouts,
+                          row.valor_conversoes_editado, dia.valorConversoes,
+                          row.visitors_editado, dia.visitors,
+                          row.id
+                        ]);
                     } else {
                         const insertSql = `INSERT INTO desempenho_diario (id_campanha, "data", impressoes, cliques, custo, cpc_medio, ctr, parcela_impressao, parcela_superior, parcela_abs_superior, orcamento_diario, estrategia_lance, nome_estrategia_lance, pagina, cpa_desejado, cpc_maximo, conversoes, checkouts, valor_conversoes, visitors, alteracoes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`;
                         await client.query(insertSql, [campanha.id, dia.data, dia.impressoes, dia.cliques, custo, dia.cpcMedio, dia.ctr, dia.searchImpressionShare, dia.topImpressionPercentage, dia.absoluteTopImpressionPercentage, dia.orcamentoDiario, dia.estrategia, dia.nomeEstrategia, dia.pagina, dia.cpaDesejado, dia.cpcMaximo, dia.conversoes, dia.checkouts, dia.valorConversoes, dia.visitors, dia.alteracoes]);
@@ -112,13 +143,15 @@ app.use(express.static('public'));
 
 app.post('/api/salvar', async (req, res) => {
     const { id, campo, valor } = req.body;
-    const camposNumericos = ['checkouts', 'conversoes', 'valor_conversoes', 'visitors'];
-    const camposTexto = ['alteracoes', 'pagina', 'nome_estrategia_lance'];
+    const camposNumericos = ['checkouts', 'conversoes', 'valor_conversoes', 'visitors', 'orcamento_diario'];
+    const camposTexto = ['alteracoes', 'pagina', 'nome_estrategia_lance', 'estrategia_lance'];
     if (![...camposNumericos, ...camposTexto].includes(campo)) return res.status(400).send('Campo ou ID inválido.');
     try {
         if (camposNumericos.includes(campo)) {
             const campoEditadoFlag = `${campo}_editado`;
             await pool.query(`UPDATE desempenho_diario SET ${campo}=$1, ${campoEditadoFlag}=1 WHERE id=$2`, [valor, id]);
+        } else if (campo === 'estrategia_lance') {
+            await pool.query(`UPDATE desempenho_diario SET estrategia_lance=$1, estrategia_lance_editado=1 WHERE id=$2`, [valor, id]);
         } else {
             await pool.query(`UPDATE desempenho_diario SET ${campo}=$1 WHERE id=$2`, [valor, id]);
         }

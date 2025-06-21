@@ -35,8 +35,17 @@ const MAPA_COLUNAS = {
     checkouts: { nome: 'Checkouts', editavel: true },
     conversoes: { nome: 'Conversões', editavel: true },
     valor_conversoes: { nome: 'Valor das<br>Conversões', editavel: true },
-    orcamento_diario: { nome: 'Orçamento<br>Diário', formatador: (item, moeda) => (item.orcamento_diario || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda }) },
-    estrategia_lance: { nome: 'Estratégia<br>de Lance', formatador: (item, moeda) => item.estrategia_lance },
+    orcamento_diario: { 
+        nome: 'Orçamento<br>Diário', 
+        formatador: (item, moeda) => (item.orcamento_diario || 0).toLocaleString('pt-BR', { style: 'currency', currency: moeda }),
+        editavel: true
+    },
+    estrategia_lance: { 
+        nome: 'Estratégia<br>de Lance', 
+        formatador: (item, moeda) => item.estrategia_lance,
+        editavel: true,
+        tipo: 'texto'
+    },
     nome_estrategia_lance: { nome: 'Nome da<br>Estratégia', editavel: true, tipo: 'texto' },
     pagina: { nome: 'Página', editavel: true, tipo: 'texto' },
     alteracoes: { nome: 'Alterações', editavel: true, tipo: 'texto' },
