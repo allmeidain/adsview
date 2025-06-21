@@ -268,7 +268,10 @@ function construirCorpoTabela(historico, ordemColunas, moeda) {
                         corpoHTML += `<td><input type="text" value="${item[chave] || ''}" data-id="${item.id}" data-campo="${chave}" class="input-editavel input-texto"></td>`;
                     } else {
                         const classEditado = item[`${chave}_editado`] ? 'editado' : '';
-                        const valorFormatado = (chave === 'valor_conversoes') ? (item[chave] || 0).toFixed(2) : (item[chave] || 0);
+                        const valorFormatado = 
+    (chave === 'valor_conversoes' || chave === 'orcamento_diario') 
+        ? (item[chave] || 0).toFixed(2) 
+        : (item[chave] || 0);
                         corpoHTML += `<td><input type="number" value="${valorFormatado}" data-id="${item.id}" data-campo="${chave}" class="input-editavel ${classEditado}" step="${chave === 'valor_conversoes' ? '0.01' : '1'}"></td>`;
                     }
                 } else {
