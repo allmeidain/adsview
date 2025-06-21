@@ -33,7 +33,14 @@ const MAPA_COLUNAS = {
         editavel: true
     },
     ctr: { nome: 'CTR<br>(%)', formatador: (item, moeda) => ((item.ctr || 0) * 100).toFixed(2) + '%' },
-    parcela_impressao: { nome: 'Parc.<br>Impressão', formatador: (item, moeda) => ((item.parcela_impressao || 0) * 100).toFixed(2) + '%' },
+    parcela_impressao: { 
+        nome: 'Parc.<br>Impressão', 
+        formatador: (item, moeda) => {
+            const valor = (item.parcela_impressao || 0) * 100;
+            if (valor < 10 && valor > 0) return '<10%';
+            return valor.toFixed(2) + '%';
+        }
+    },
     parcela_superior: { nome: 'Parte.<br>Superior', formatador: (item, moeda) => ((item.parcela_superior || 0) * 100).toFixed(2) + '%' },
     parcela_abs_superior: { 
         nome: '1ª<br>Posição', 
