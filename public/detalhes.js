@@ -41,10 +41,21 @@ const MAPA_COLUNAS = {
             return valor.toFixed(2) + '%';
         }
     },
-    parcela_superior: { nome: 'Parte.<br>Superior', formatador: (item, moeda) => ((item.parcela_superior || 0) * 100).toFixed(2) + '%' },
+    parcela_superior: { 
+        nome: 'Parte.<br>Superior', 
+        formatador: (item, moeda) => {
+            const valor = (item.parcela_superior || 0) * 100;
+            if (valor < .01 && valor > 0) return '<10%';
+            return valor.toFixed(2) + '%';
+        }
+    },
     parcela_abs_superior: { 
         nome: '1ª<br>Posição', 
-        formatador: (item, moeda) => ((item.parcela_abs_superior || 0) * 100).toFixed(2) + '%' 
+        formatador: (item, moeda) => {
+            const valor = (item.parcela_abs_superior || 0) * 100;
+            if (valor < .01 && valor > 0) return '<10%';
+            return valor.toFixed(2) + '%';
+        }
     },
     visitors: { nome: 'Visitors', editavel: true },
     checkouts: { nome: 'Checkouts', editavel: true },
