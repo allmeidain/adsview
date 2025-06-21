@@ -1,5 +1,4 @@
-// VERSÃO 2.1 FINAL  (recebendo dados OK)
-// Não autaliza 1a posição
+// VERSÃO 2.1 FINAL  OK
 
 const express = require('express');
 const { Pool } = require('pg');
