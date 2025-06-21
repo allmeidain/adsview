@@ -91,16 +91,16 @@ app.post('/api/webhook', async (req, res) => {
 INSERT INTO desempenho_diario (
     id_campanha, "data", impressoes, cliques, conversoes, valor_conversoes, checkouts, visitors,
     ctr, cpc_medio, parcela_impressao, parcela_superior, parcela_abs_superior,
-    orcamento_diario, estrategia_lance, nome_estrategia_lance, conta, codigo_moeda, cpa_desejado, cpc_maximo
+    orcamento_diario, estrategia_lance, nome_estrategia_lance, cpa_desejado, cpc_maximo
 ) VALUES (
     $1,$2,$3,$4,$5,$6,$7,$8,
     $9,$10,$11,$12,$13,
-    $14,$15,$16,$17,$18,$19,$20, NULL, NULL
+    $14,$15,$16,$17,$18
 )`;
                         await client.query(insertSql, [
                             campanha.id, dia.data, dia.impressoes, dia.cliques, dia.conversoes, dia.valorConversoes, dia.checkouts, dia.visitors,
                             dia.ctr, dia.cpcMedio, dia.searchImpressionShare, dia.topImpressionPercentage, dia.absoluteTopImpressionPercentage,
-                            dia.orcamentoDiario, dia.estrategia, dia.nomeEstrategia, dia.conta, dia.codigoMoeda, dia.cpaDesejado, dia.cpcMaximo
+                            dia.orcamentoDiario, dia.estrategia, dia.nomeEstrategia, dia.cpaDesejado, dia.cpcMaximo
                         ]);
                     }
                 }
