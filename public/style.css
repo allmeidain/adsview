@@ -19,9 +19,6 @@ body {
     padding: 20px;
 }
 
-main {
-}
-
 a {
     color: var(--cor-primaria);
     text-decoration: none;
