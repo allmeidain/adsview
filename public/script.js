@@ -323,4 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         aplicarFiltros();
     });
+
+    window.ordenarCampanhasPorColuna = ordenarCampanhasPorColuna;
 });
