@@ -1,7 +1,5 @@
 const webhookUrl = "https://dashboard-campanhas.onrender.com/api/webhook";
 
-// VERSÃO FINAL - 21/06/2025
-
 
 function main() {
     // A lista de dados de campanhas é declarada uma única vez, antes de tudo.
@@ -17,13 +15,13 @@ function main() {
 
         // Seleciona a conta atual. A partir daqui, o script opera dentro desta conta.
         AdsManagerApp.select(account);
-//        Logger.log(`>>> Processando conta: ${account.getName()} (ID: ${account.getCustomerId()})`);
+        Logger.log(`>>> Processando conta: ${account.getName()} (ID: ${account.getCustomerId()})`);
 
         // Busca as campanhas ativas dentro da conta selecionada.
         const campaignIterator = AdsApp.campaigns()
             .withCondition("campaign.status = 'ENABLED'")
             .get();
-//        Logger.log(`Encontradas ${campaignIterator.totalNumEntities()} campanhas ativas nesta conta.`);
+        Logger.log(`Encontradas ${campaignIterator.totalNumEntities()} campanhas ativas nesta conta.`);
 
         while (campaignIterator.hasNext()) {
             const campanha = campaignIterator.next();
@@ -41,7 +39,6 @@ function main() {
                     nomeCampanha: campanha.getName(),
                     conta: dadosRecentes.length > 0 ? dadosRecentes[0].conta : 'N/A',
                     codigoMoeda: dadosRecentes.length > 0 ? dadosRecentes[0].codigoMoeda : 'BRL',
-                    status: "N/A", // <-- sempre envia "N/A" para evitar erro no backend
                     dadosRecentes: dadosRecentes,
                     blocos: {}
                 });
@@ -68,10 +65,8 @@ function main() {
  * @return {Array} Uma lista de objetos com os dados diários.
  */
 function obterDadosRecentes(idCampanha, strategyType) {
-    // Define a base de campos que sempre serão buscados.
     let campos = 'segments.date, metrics.impressions, metrics.clicks, metrics.conversions, metrics.all_conversions, metrics.all_conversions_value, metrics.ctr, metrics.average_cpc, campaign.bidding_strategy_type, bidding_strategy.name, campaign_budget.amount_micros, customer.id, customer.currency_code, metrics.search_impression_share, metrics.search_top_impression_share, metrics.search_absolute_top_impression_share';
 
-    // Adiciona campos de lance específicos dinamicamente, baseado na estratégia.
     if (strategyType === 'TARGET_CPA') {
         campos += ', campaign.target_cpa.target_cpa_micros';
     } else if (strategyType === 'MAXIMIZE_CLICKS') {
@@ -110,6 +105,10 @@ function obterDadosRecentes(idCampanha, strategyType) {
         const conversoesPadrao = linha.metrics.conversions;
         const checkoutsCalculado = todasConversoes - conversoesPadrao;
 
+      // PENDENTE: Substitua o '0' pela sua fórmula para calcular os visitors.
+const visitorsCalculado = 0; 
+
+      
         const dataObject = {
             data: linha.segments.date,
             impressoes: linha.metrics.impressions,
@@ -117,25 +116,23 @@ function obterDadosRecentes(idCampanha, strategyType) {
             conversoes: conversoesPadrao,
             valorConversoes: linha.metrics.allConversionsValue,
             checkouts: checkoutsCalculado,
+            visitors: visitorsCalculado,
             ctr: linha.metrics.ctr,
             cpcMedio: linha.metrics.averageCpc / 1000000,
             searchImpressionShare: linha.metrics.searchImpressionShare,
             topImpressionPercentage: linha.metrics.searchTopImpressionShare,
-            absoluteTopImpressionPercentage: linha.metrics.searchAbsoluteTopImpressionShare,
-            orcamentoDiario: linha.campaignBudget.amountMicros / 1000000,
+            absoluteTopImpressionPercentage: linha.metrics.searchAbsoluteTopImpressionPercentage,
             estrategia: linha.campaign.biddingStrategyType,
+            
             nomeEstrategia: linha.biddingStrategy ? linha.biddingStrategy.name : '',
-            pagina: '', // adicione se não existir
+
+            orcamentoDiario: linha.campaignBudget.amountMicros / 1000000,
+            conta: linha.customer.id,
+            codigoMoeda: linha.customer.currencyCode,
             cpaDesejado: 0,
             cpcMaximo: 0,
-            conversoes: conversoesPadrao,
-            checkouts: checkoutsCalculado,
-            valorConversoes: linha.metrics.allConversionsValue,
-            visitors: 0, // adicione se não existir
-            alteracoes: '', // adicione se não existir
         };
         
-            // Preenche o CPA Desejado ou CPC Máximo com base na estratégia da campanha.
         if (strategyType === 'TARGET_CPA' && linha.campaign.targetCpa) {
             dataObject.cpaDesejado = parseFloat(linha.campaign.targetCpa.targetCpaMicros) / 1000000;
         } else if (strategyType === 'MAXIMIZE_CONVERSIONS' && linha.campaign.maximizeConversions) {
@@ -152,10 +149,6 @@ function obterDadosRecentes(idCampanha, strategyType) {
 }
 
 
-/**
- * Envia os dados coletados para o endpoint do webhook.
- * @param {Array} dados O array de dados das campanhas a ser enviado.
- */
 function enviarParaWebhook(dados) {
     const payload = { campanhas: dados };
     const params = {

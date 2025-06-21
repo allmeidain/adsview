@@ -87,12 +87,20 @@ app.post('/api/webhook', async (req, res) => {
                         const updateSql = `UPDATE desempenho_diario SET impressoes=$1, cliques=$2, custo=$3, cpc_medio=$4, ctr=$5, parcela_impressao=$6, parcela_superior=$7, parcela_abs_superior=$8, orcamento_diario=$9, estrategia_lance=$10, nome_estrategia_lance=$11, cpa_desejado=$12, cpc_maximo=$13, conversoes=CASE WHEN $14=0 THEN $15 ELSE conversoes END, checkouts=CASE WHEN $16=0 THEN $17 ELSE checkouts END, valor_conversoes=CASE WHEN $18=0 THEN $19 ELSE valor_conversoes END, visitors=CASE WHEN $20=0 THEN $21 ELSE visitors END WHERE id=$22`;
                         await client.query(updateSql, [dia.impressoes, dia.cliques, custo, dia.cpcMedio, dia.ctr, dia.searchImpressionShare, dia.topImpressionPercentage, dia.absoluteTopImpressionPercentage, dia.orcamentoDiario, dia.estrategia, dia.nomeEstrategia, dia.cpaDesejado, dia.cpcMaximo, row.conversoes_editado, dia.conversoes, row.checkouts_editado, dia.checkouts, row.valor_conversoes_editado, dia.valorConversoes, row.visitors_editado, dia.visitors, row.id]);
                     } else {
-                        const insertSql = `INSERT INTO desempenho_diario (id_campanha, "data", impressoes, cliques, custo, cpc_medio, ctr, parcela_impressao, parcela_superior, parcela_abs_superior, orcamento_diario, estrategia_lance, nome_estrategia_lance, pagina, cpa_desejado, cpc_maximo, conversoes, checkouts, valor_conversoes, visitors, alteracoes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`;
+                        const insertSql = `
+INSERT INTO desempenho_diario (
+    id_campanha, "data", impressoes, cliques, conversoes, valor_conversoes, checkouts, visitors,
+    ctr, cpc_medio, parcela_impressao, parcela_superior, parcela_abs_superior,
+    orcamento_diario, estrategia_lance, nome_estrategia_lance, conta, codigo_moeda, cpa_desejado, cpc_maximo
+) VALUES (
+    $1,$2,$3,$4,$5,$6,$7,$8,
+    $9,$10,$11,$12,$13,
+    $14,$15,$16,$17,$18,$19,$20, NULL, NULL
+)`;
                         await client.query(insertSql, [
-                          campanha.id, dia.data, dia.impressoes, dia.cliques, custo, dia.cpcMedio, dia.ctr,
-                          dia.searchImpressionShare, dia.topImpressionPercentage, dia.absoluteTopImpressionPercentage,
-                          dia.orcamentoDiario, dia.estrategia, dia.nomeEstrategia, dia.pagina,
-                          dia.cpaDesejado, dia.cpcMaximo, dia.conversoes, dia.checkouts, dia.valorConversoes, dia.visitors, dia.alteracoes
+                            campanha.id, dia.data, dia.impressoes, dia.cliques, dia.conversoes, dia.valorConversoes, dia.checkouts, dia.visitors,
+                            dia.ctr, dia.cpcMedio, dia.searchImpressionShare, dia.topImpressionPercentage, dia.absoluteTopImpressionPercentage,
+                            dia.orcamentoDiario, dia.estrategia, dia.nomeEstrategia, dia.conta, dia.codigoMoeda, dia.cpaDesejado, dia.cpcMaximo
                         ]);
                     }
                 }
