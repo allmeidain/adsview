@@ -395,7 +395,7 @@ th[data-coluna].sorted-desc::after {
 }
 /* Adicione ao seu style.css */
 .destaque-celula {
-    background: #ffeeba !important;
+    color: #d58500 !important;   /* cor destacada para o texto */
     font-weight: bold;
-    color: #856404;
+    background: none !important; /* remove o fundo */
 }
