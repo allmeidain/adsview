@@ -395,3 +395,10 @@ async function salvarAlteracoes() {
         btnSalvar.disabled = false;
     }
 }
+
+/* --- ESTILOS CSS INCLUÍDOS --- */
+td.destaque-celula input {
+    color: #d58500 !important;
+    font-weight: bold !important;
+    background: none !important;
+}
