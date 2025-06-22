@@ -393,16 +393,3 @@ th[data-coluna].sorted-desc::after {
     border-top-color: #333;
     opacity: 1;
 }
-/* Adicione ao seu style.css */
-.destaque-celula {
-    color: #d58500 !important;   /* cor destacada para o texto */
-    font-weight: bold;
-    background: none !important; /* remove o fundo */
-}
-
-td.destaque-celula,
-td.destaque-celula input {
-    color: #d58500 !important;
-    font-weight: bold !important;
-    background: none !important;
-}

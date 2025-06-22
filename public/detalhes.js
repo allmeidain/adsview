@@ -128,7 +128,7 @@ async function buscarDadosDaCampanha(id) {
         document.getElementById('nome-campanha').innerText = infoCampanha.nome;
         document.getElementById('id-conta').innerText = `Conta: ${infoCampanha.conta || 'N/A'}`;
         
-        document.querySelector('.filtro-data-botoes button[data-periodo="7d"]').click();
+        document.querySelector('.filtro-data-botoes button[data-periodo="hoje"]').click();
     } catch (erro) { 
         console.error("Falha ao buscar dados da campanha:", erro);
         document.getElementById('metricas-recentes').innerHTML = "<p>Ocorreu um erro ao carregar os dados.</p>";
@@ -289,24 +289,19 @@ function construirCorpoTabela(historico, ordemColunas, moeda) {
         ordemColunas.forEach(chave => {
             const coluna = MAPA_COLUNAS[chave];
             if (coluna) {
-                // Destaque para checkouts e conversões > 0
-                let destaque = '';
-                if ((chave === 'checkouts' || chave === 'conversoes') && (item[chave] > 0)) {
-                    destaque = ' destaque-celula';
-                }
                 if (coluna.editavel) {
                     if (coluna.tipo === 'texto') {
-                        corpoHTML += `<td class="${destaque}"><input type="text" value="${item[chave] || ''}" data-id="${item.id}" data-campo="${chave}" class="input-editavel input-texto"></td>`;
+                        corpoHTML += `<td><input type="text" value="${item[chave] || ''}" data-id="${item.id}" data-campo="${chave}" class="input-editavel input-texto"></td>`;
                     } else {
                         const classEditado = item[`${chave}_editado`] ? 'editado' : '';
                         const valorFormatado = 
     (chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo')
         ? (item[chave] || 0).toFixed(2)
         : (item[chave] || 0);
-                        corpoHTML += `<td class="${destaque}"><input type="number" value="${valorFormatado}" data-id="${item.id}" data-campo="${chave}" class="input-editavel ${classEditado}" step="${(chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo') ? '0.01' : '1'}"></td>`;
+                        corpoHTML += `<td><input type="number" value="${valorFormatado}" data-id="${item.id}" data-campo="${chave}" class="input-editavel ${classEditado}" step="${(chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo') ? '0.01' : '1'}"></td>`;
                     }
                 } else {
-                    corpoHTML += `<td class="${destaque}">${coluna.formatador(item, moeda)}</td>`;
+                    corpoHTML += `<td>${coluna.formatador(item, moeda)}</td>`;
                 }
             }
         });
@@ -394,11 +389,4 @@ async function salvarAlteracoes() {
     } finally {
         btnSalvar.disabled = false;
     }
-}
-
-/* --- ESTILOS CSS INCLUÍDOS --- */
-td.destaque-celula input {
-    color: #d58500 !important;
-    font-weight: bold !important;
-    background: none !important;
 }
