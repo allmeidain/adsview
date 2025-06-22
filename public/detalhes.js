@@ -128,7 +128,7 @@ async function buscarDadosDaCampanha(id) {
         document.getElementById('nome-campanha').innerText = infoCampanha.nome;
         document.getElementById('id-conta').innerText = `Conta: ${infoCampanha.conta || 'N/A'}`;
         
-        document.querySelector('.filtro-data-botoes button[data-periodo="hoje"]').click();
+        document.querySelector('.filtro-data-botoes button[data-periodo="7d"]').click();
     } catch (erro) { 
         console.error("Falha ao buscar dados da campanha:", erro);
         document.getElementById('metricas-recentes').innerHTML = "<p>Ocorreu um erro ao carregar os dados.</p>";
