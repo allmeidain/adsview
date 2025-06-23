@@ -326,17 +326,17 @@ function construirCorpoTabela(historico, ordemColunas, moeda) {
                 }
                 if (coluna.editavel) {
                     if (coluna.tipo === 'texto') {
-                        corpoHTML += `<td class="${resizableClass}${destaque}"><input type="text" value="${item[chave] || ''}" data-id="${item.id}" data-campo="${chave}" class="input-editavel input-texto">${resizeHandle}</td>`;
+                        corpoHTML += `<td class="${destaque}"><input type="text" value="${item[chave] || ''}" data-id="${item.id}" data-campo="${chave}" class="input-editavel input-texto"></td>`;
                     } else {
                         const classEditado = item[`${chave}_editado`] ? 'editado' : '';
                         const valorFormatado = 
-    (chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo')
-        ? (item[chave] || 0).toFixed(2)
-        : (item[chave] || 0);
-                        corpoHTML += `<td class="${resizableClass}${destaque}"><input type="number" value="${valorFormatado}" data-id="${item.id}" data-campo="${chave}" class="input-editavel ${classEditado}" step="${(chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo') ? '0.01' : '1'}">${resizeHandle}</td>`;
+                            (chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo')
+                                ? (item[chave] || 0).toFixed(2)
+                                : (item[chave] || 0);
+                        corpoHTML += `<td class="${destaque}"><input type="number" value="${valorFormatado}" data-id="${item.id}" data-campo="${chave}" class="input-editavel ${classEditado}" step="${(chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo') ? '0.01' : '1'}"></td>`;
                     }
                 } else {
-                    corpoHTML += `<td class="${resizableClass}${destaque}">${coluna.formatador(item, moeda)}${resizeHandle}</td>`;
+                    corpoHTML += `<td class="${destaque}">${coluna.formatador(item, moeda)}</td>`;
                 }
             }
         });
