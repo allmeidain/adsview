@@ -105,9 +105,6 @@ th, td {
     text-align: left;
     padding: 12px 15px;
     border-bottom: 1px solid var(--cor-borda);
-    min-width: 80px;
-    max-width: 400px;
-    overflow: auto;
 }
 td {
     text-align: center;
@@ -372,7 +369,7 @@ th.coluna-editavel {
 th[data-coluna] {
     cursor: pointer;
     position: relative;
-    padding-right: 20px;
+    padding-right: 20px; /* Espaço para a seta */
 }
 
 th[data-coluna]::after {
@@ -386,17 +383,19 @@ th[data-coluna]::after {
 }
 
 th[data-coluna].sorted-asc::after {
+    content: '';
     border-bottom-color: #333;
     opacity: 1;
 }
 
 th[data-coluna].sorted-desc::after {
+    content: '';
     border-top-color: #333;
     opacity: 1;
 }
-
+/* Adicione ao seu style.css */
 .destaque-celula {
-    color: #d58500 !important;
+    background: #ffeeba !important;
     font-weight: bold;
-    background: none !important;
+    color: #856404;
 }
