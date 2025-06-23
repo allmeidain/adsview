@@ -120,10 +120,32 @@ async function buscarDadosDaCampanha(id) {
         
         const dados = await dadosResp.json();
         const config = await configResp.json();
-        
+
         infoCampanha = dados.info;
         historicoCompleto = dados.historico;
-        ordemColunasAtual = config.valor ? JSON.parse(config.valor) : ORDEM_PADRAO;
+
+        // Verificação e fallback para ordemColunasAtual
+        let ordemValida = false;
+        if (config.valor) {
+            try {
+                const ordem = JSON.parse(config.valor);
+                if (Array.isArray(ordem) && ordem.length > 0 && ordem.every(col => MAPA_COLUNAS[col])) {
+                    ordemColunasAtual = ordem;
+                    ordemValida = true;
+                }
+            } catch (e) {
+                // JSON inválido, ignora
+            }
+        }
+        if (!ordemValida) {
+            ordemColunasAtual = ORDEM_PADRAO;
+            // (Opcional) Salva a ordem padrão no backend para evitar o problema no futuro
+            await fetch('/api/configuracoes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chave: 'ordem_colunas_detalhes', valor: JSON.stringify(ORDEM_PADRAO) })
+            });
+        }
 
         document.getElementById('nome-campanha').innerText = infoCampanha.nome;
         document.getElementById('id-conta').innerText = `Conta: ${infoCampanha.conta || 'N/A'}`;
