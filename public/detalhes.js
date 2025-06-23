@@ -275,7 +275,7 @@ function construirTabelaDinamica(historico, ordem, moeda) {
     let cabecalhoHTML = '<tr>';
     ordem.forEach(chave => {
         const coluna = MAPA_COLUNAS[chave];
-        if (coluna) cabecalhoHTML += `<th data-key="${chave}" class="${coluna.editavel ? 'coluna-editavel' : ''}">${coluna.nome}</th>`;
+        if (coluna) cabecalhoHTML += `<th data-key="${chave}" class="resizable ${coluna.editavel ? 'coluna-editavel' : ''}">${coluna.nome}</th>`;
     });
     cabecalhoHTML += '</tr>';
     const corpoHTML = construirCorpoTabela(historico, ordem, moeda);
