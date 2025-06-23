@@ -418,3 +418,17 @@ th[data-coluna].sorted-desc::after {
     white-space: nowrap;
     text-overflow: ellipsis;
 }
+td input.input-editavel {
+    width: 98%;
+    min-width: 0;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 2px 4px;
+    background: #fff;
+    font-size: 1em;
+    outline: none;
+}
+td input.input-editavel:focus {
+    border-color: #007bff;
+}
