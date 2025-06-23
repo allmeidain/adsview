@@ -409,3 +409,12 @@ th[data-coluna].sorted-desc::after {
     cursor: col-resize;
     z-index: 2;
 }
+#metricas-recentes table {
+    table-layout: fixed;
+    width: 100%;
+}
+#metricas-recentes th, #metricas-recentes td {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}

@@ -428,16 +428,20 @@ function adicionarListenersResizeLinha() {
     document.querySelectorAll('.resize-handle-linha').forEach(handle => {
         handle.addEventListener('mousedown', function(e) {
             const colIdx = parseInt(handle.dataset.col, 10);
+            // Seleciona todos os tds da coluna
             const tds = Array.from(document.querySelectorAll(`#corpo-tabela tr td:nth-child(${colIdx + 1})`));
+            // Seleciona o th correspondente
             const th = document.querySelector(`#cabecalho-tabela th:nth-child(${colIdx + 1})`);
             const startX = e.pageX;
-            const startWidth = tds[0].offsetWidth;
+            // Usa o th como referência de largura inicial
+            const startWidth = th ? th.offsetWidth : tds[0].offsetWidth;
             document.body.style.cursor = 'col-resize';
 
             function onMouseMove(ev) {
                 const newWidth = Math.max(60, startWidth + (ev.pageX - startX));
-                tds.forEach(td => td.style.width = newWidth + 'px');
+                // Aplica a largura ao th e a todos os tds da coluna
                 if (th) th.style.width = newWidth + 'px';
+                tds.forEach(td => td.style.width = newWidth + 'px');
             }
             function onMouseUp() {
                 document.removeEventListener('mousemove', onMouseMove);
