@@ -372,7 +372,7 @@ th.coluna-editavel {
 th[data-coluna] {
     cursor: pointer;
     position: relative;
-    padding-right: 20px; /* Espaço para a seta */
+    padding-right: 20px;
 }
 
 th[data-coluna]::after {
@@ -386,54 +386,17 @@ th[data-coluna]::after {
 }
 
 th[data-coluna].sorted-asc::after {
-    content: '';
     border-bottom-color: #333;
     opacity: 1;
 }
 
 th[data-coluna].sorted-desc::after {
-    content: '';
     border-top-color: #333;
     opacity: 1;
 }
-/* Adicione ao seu style.css */
-.destaque-celula {
-    background: #ffeeba !important;
-    font-weight: bold;
-    color: #856404;
-}
 
-th.resizable {
-    position: relative;
-    overflow: auto;
-    cursor: col-resize;
-}
-.resize-handle {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 8px;
-    height: 100%;
-    cursor: col-resize;
-    z-index: 2;
-}
-th {
-    position: relative;
-}
-.tabela-detalhes td.resizable {
-    position: relative;
-    min-width: 60px;
-    max-width: 400px;
-    /* Para visualização do handle */
-    border-right: 2px solid #eee;
-    cursor: col-resize;
-}
-.tabela-detalhes .resize-handle-linha {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 8px;
-    height: 100%;
-    cursor: col-resize;
-    z-index: 2;
+.destaque-celula {
+    color: #d58500 !important;
+    font-weight: bold;
+    background: none !important;
 }
