@@ -216,6 +216,7 @@ function renderizarTabelaPrincipal(dados) {
     container.innerHTML = construirTabelaDinamica(dados, ordemColunasAtual, infoCampanha.codigo_moeda);
     adicionarListenersDeInput();
     inicializarDragAndDrop();
+    adicionarListenersResizeLinha(); // <-- adicione aqui
 }
 
 function adicionarListenersDeFiltro() {
@@ -307,29 +308,33 @@ function construirTabelaDinamica(historico, ordem, moeda) {
 function construirCorpoTabela(historico, ordemColunas, moeda) {
     if (!historico || historico.length === 0) return `<tr><td colspan="${ordemColunas.length}">Nenhum histórico encontrado para este período.</td></tr>`;
     let corpoHTML = '';
-    historico.forEach(item => {
+    historico.forEach((item, rowIdx) => {
         corpoHTML += `<tr>`;
-        ordemColunas.forEach(chave => {
+        ordemColunas.forEach((chave, colIdx) => {
             const coluna = MAPA_COLUNAS[chave];
             if (coluna) {
-                // Destaque para checkouts e conversões > 0
                 let destaque = '';
                 if ((chave === 'checkouts' || chave === 'conversoes') && (item[chave] > 0)) {
                     destaque = ' destaque-celula';
                 }
+                // Adiciona handle de resize apenas na primeira linha
+                let resizeHandle = '';
+                if (rowIdx === 0) {
+                    resizeHandle = `<span class="resize-handle-linha" data-col="${colIdx}"></span>`;
+                }
                 if (coluna.editavel) {
                     if (coluna.tipo === 'texto') {
-                        corpoHTML += `<td class="${destaque}"><input type="text" value="${item[chave] || ''}" data-id="${item.id}" data-campo="${chave}" class="input-editavel input-texto"></td>`;
+                        corpoHTML += `<td class="${destaque}"><input type="text" value="${item[chave] || ''}" data-id="${item.id}" data-campo="${chave}" class="input-editavel input-texto">${resizeHandle}</td>`;
                     } else {
                         const classEditado = item[`${chave}_editado`] ? 'editado' : '';
                         const valorFormatado = 
-    (chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo')
-        ? (item[chave] || 0).toFixed(2)
-        : (item[chave] || 0);
-                        corpoHTML += `<td class="${destaque}"><input type="number" value="${valorFormatado}" data-id="${item.id}" data-campo="${chave}" class="input-editavel ${classEditado}" step="${(chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo') ? '0.01' : '1'}"></td>`;
+                            (chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo')
+                                ? (item[chave] || 0).toFixed(2)
+                                : (item[chave] || 0);
+                        corpoHTML += `<td class="${destaque}"><input type="number" value="${valorFormatado}" data-id="${item.id}" data-campo="${chave}" class="input-editavel ${classEditado}" step="${(chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo') ? '0.01' : '1'}">${resizeHandle}</td>`;
                     }
                 } else {
-                    corpoHTML += `<td class="${destaque}">${coluna.formatador(item, moeda)}</td>`;
+                    corpoHTML += `<td class="${destaque}">${coluna.formatador(item, moeda)}${resizeHandle}</td>`;
                 }
             }
         });
@@ -417,4 +422,31 @@ async function salvarAlteracoes() {
     } finally {
         btnSalvar.disabled = false;
     }
+}
+
+function adicionarListenersResizeLinha() {
+    document.querySelectorAll('.resize-handle-linha').forEach(handle => {
+        handle.addEventListener('mousedown', function(e) {
+            const colIdx = parseInt(handle.dataset.col, 10);
+            const tds = Array.from(document.querySelectorAll(`#corpo-tabela tr td:nth-child(${colIdx + 1})`));
+            const th = document.querySelector(`#cabecalho-tabela th:nth-child(${colIdx + 1})`);
+            const startX = e.pageX;
+            const startWidth = tds[0].offsetWidth;
+            document.body.style.cursor = 'col-resize';
+
+            function onMouseMove(ev) {
+                const newWidth = Math.max(60, startWidth + (ev.pageX - startX));
+                tds.forEach(td => td.style.width = newWidth + 'px');
+                if (th) th.style.width = newWidth + 'px';
+            }
+            function onMouseUp() {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                document.body.style.cursor = '';
+            }
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            e.stopPropagation();
+        });
+    });
 }

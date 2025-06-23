@@ -108,6 +108,7 @@ th, td {
 }
 td {
     text-align: center;
+    position: relative;
 }
 th {
     background-color: #f7f7f7;
@@ -398,4 +399,13 @@ th[data-coluna].sorted-desc::after {
     background: #ffeeba !important;
     font-weight: bold;
     color: #856404;
+}
+.resize-handle-linha {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 2;
 }
