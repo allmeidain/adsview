@@ -405,7 +405,35 @@ th[data-coluna].sorted-desc::after {
 
 th.resizable {
     position: relative;
-    resize: horizontal;
     overflow: auto;
     cursor: col-resize;
+}
+.resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 2;
+}
+th {
+    position: relative;
+}
+.tabela-detalhes td.resizable {
+    position: relative;
+    min-width: 60px;
+    max-width: 400px;
+    /* Para visualização do handle */
+    border-right: 2px solid #eee;
+    cursor: col-resize;
+}
+.tabela-detalhes .resize-handle-linha {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 2;
 }

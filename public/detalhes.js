@@ -108,6 +108,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const dataHoje = new Date().toISOString().slice(0, 10);
         exportarParaCSV(headers, dataRows, `detalhes_${infoCampanha.id}_${dataHoje}.csv`);
     });
+
+    document.querySelectorAll('.resize-handle').forEach(handle => {
+        let startX, startWidth, th;
+        handle.addEventListener('mousedown', function(e) {
+            th = handle.parentElement;
+            startX = e.pageX;
+            startWidth = th.offsetWidth;
+            document.body.style.cursor = 'col-resize';
+
+            function onMouseMove(e) {
+                const newWidth = Math.max(60, startWidth + (e.pageX - startX));
+                th.style.width = newWidth + 'px';
+            }
+            function onMouseUp() {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                document.body.style.cursor = '';
+            }
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            e.stopPropagation(); // Impede que o clique no handle dispare a ordenação
+        });
+    });
 });
 
 async function buscarDadosDaCampanha(id) {
@@ -275,7 +298,7 @@ function construirTabelaDinamica(historico, ordem, moeda) {
     let cabecalhoHTML = '<tr>';
     ordem.forEach(chave => {
         const coluna = MAPA_COLUNAS[chave];
-        if (coluna) cabecalhoHTML += `<th data-key="${chave}" class="resizable ${coluna.editavel ? 'coluna-editavel' : ''}">${coluna.nome}</th>`;
+        if (coluna) cabecalhoHTML += `<th data-coluna="${chave}" onclick="ordenarCampanhasPorColuna('${chave}')">${coluna.nome}</th>`;
     });
     cabecalhoHTML += '</tr>';
     const corpoHTML = construirCorpoTabela(historico, ordem, moeda);
@@ -285,29 +308,35 @@ function construirTabelaDinamica(historico, ordem, moeda) {
 function construirCorpoTabela(historico, ordemColunas, moeda) {
     if (!historico || historico.length === 0) return `<tr><td colspan="${ordemColunas.length}">Nenhum histórico encontrado para este período.</td></tr>`;
     let corpoHTML = '';
-    historico.forEach(item => {
+    historico.forEach((item, rowIdx) => {
         corpoHTML += `<tr>`;
-        ordemColunas.forEach(chave => {
+        ordemColunas.forEach((chave, colIdx) => {
             const coluna = MAPA_COLUNAS[chave];
             if (coluna) {
-                // Destaque para checkouts e conversões > 0
                 let destaque = '';
                 if ((chave === 'checkouts' || chave === 'conversoes') && (item[chave] > 0)) {
                     destaque = ' destaque-celula';
                 }
+                // Adiciona handle de resize apenas na primeira linha
+                let resizeHandle = '';
+                let resizableClass = '';
+                if (rowIdx === 0) {
+                    resizeHandle = `<span class="resize-handle-linha" data-col="${colIdx}"></span>`;
+                    resizableClass = 'resizable';
+                }
                 if (coluna.editavel) {
                     if (coluna.tipo === 'texto') {
-                        corpoHTML += `<td class="${destaque}"><input type="text" value="${item[chave] || ''}" data-id="${item.id}" data-campo="${chave}" class="input-editavel input-texto"></td>`;
+                        corpoHTML += `<td class="${resizableClass}${destaque}"><input type="text" value="${item[chave] || ''}" data-id="${item.id}" data-campo="${chave}" class="input-editavel input-texto">${resizeHandle}</td>`;
                     } else {
                         const classEditado = item[`${chave}_editado`] ? 'editado' : '';
                         const valorFormatado = 
     (chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo')
         ? (item[chave] || 0).toFixed(2)
         : (item[chave] || 0);
-                        corpoHTML += `<td class="${destaque}"><input type="number" value="${valorFormatado}" data-id="${item.id}" data-campo="${chave}" class="input-editavel ${classEditado}" step="${(chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo') ? '0.01' : '1'}"></td>`;
+                        corpoHTML += `<td class="${resizableClass}${destaque}"><input type="number" value="${valorFormatado}" data-id="${item.id}" data-campo="${chave}" class="input-editavel ${classEditado}" step="${(chave === 'valor_conversoes' || chave === 'orcamento_diario' || chave === 'cpa_desejado' || chave === 'cpc_maximo') ? '0.01' : '1'}">${resizeHandle}</td>`;
                     }
                 } else {
-                    corpoHTML += `<td class="${destaque}">${coluna.formatador(item, moeda)}</td>`;
+                    corpoHTML += `<td class="${resizableClass}${destaque}">${coluna.formatador(item, moeda)}${resizeHandle}</td>`;
                 }
             }
         });
@@ -396,3 +425,28 @@ async function salvarAlteracoes() {
         btnSalvar.disabled = false;
     }
 }
+
+// Função de ordenação (caso não tenha)
+window.ordenarCampanhasPorColuna = function(coluna) {
+    if (!dadosAtuaisDaTabela || dadosAtuaisDaTabela.length === 0) return;
+    if (colunaOrdenada === coluna) {
+        ordemCrescente = !ordemCrescente;
+    } else {
+        colunaOrdenada = coluna;
+        ordemCrescente = true;
+    }
+    dadosAtuaisDaTabela.sort((a, b) => {
+        let valA = a[coluna], valB = b[coluna];
+        if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
+            valA = parseFloat(valA);
+            valB = parseFloat(valB);
+        } else {
+            valA = valA ? String(valA).toLowerCase() : '';
+            valB = valB ? String(valB).toLowerCase() : '';
+        }
+        if (valA < valB) return ordemCrescente ? -1 : 1;
+        if (valA > valB) return ordemCrescente ? 1 : -1;
+        return 0;
+    });
+    renderizarTabelaPrincipal(dadosAtuaisDaTabela);
+};
