@@ -1,4 +1,4 @@
-// --- VARIÁVEIS GLOBAIS DE ESTADO ---
+// --- VARIÁVEIS GLOBAIS DE ESTADO --- Filtros de Data
 let todasCampanhas = [];
 let campanhasSelecionadasIds = [];
 let moedasSelecionadas = [];
