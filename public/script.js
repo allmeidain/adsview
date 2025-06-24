@@ -367,8 +367,8 @@ document.getElementById('filtro-rapido-container').addEventListener('click', (ev
         case 'total':
             // Para "Todo Período", limpamos as datas.
             // A sua API deve ser capaz de interpretar datas vazias como "sem limite".
-            dataInicioInput.value = '';
-            dataFimInput.value = '';
+            dataInicioInput.value = '2000-01-01'';
+            dataFimInput.value = formatarData(hoje);
             break;
     }
 
