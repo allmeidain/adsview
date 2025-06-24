@@ -319,63 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
         carregarResumo(url);
     });
 
-    // Cole este bloco dentro do seu 'DOMContentLoaded' listener em script.js
-
-document.getElementById('filtro-rapido-container').addEventListener('click', (event) => {
-    if (!event.target.matches('.btn-filtro-data')) {
-        return; // Sai se o clique não foi num botão de filtro
-    }
-
-    const botaoClicado = event.target;
-    const periodo = botaoClicado.dataset.periodo;
-
-    // Remove a classe 'ativo' de todos os botões do grupo
-    document.querySelectorAll('.btn-filtro-data').forEach(btn => {
-        btn.classList.remove('ativo');
-    });
-    // Adiciona a classe 'ativo' apenas ao botão clicado
-    botaoClicado.classList.add('ativo');
-
-    const dataFimInput = document.getElementById('data-fim');
-    const dataInicioInput = document.getElementById('data-inicio');
-    
-    const hoje = new Date();
-    let dataInicio = new Date();
-
-    // Função para formatar a data para o formato YYYY-MM-DD
-    const formatarData = (data) => {
-        const ano = data.getFullYear();
-        const mes = String(data.getMonth() + 1).padStart(2, '0');
-        const dia = String(data.getDate()).padStart(2, '0');
-        return `${ano}-${mes}-${dia}`;
-    };
-
-    dataFimInput.value = formatarData(hoje);
-
-    switch (periodo) {
-        case 'hoje':
-            dataInicioInput.value = formatarData(hoje);
-            break;
-        case '7dias':
-            dataInicio.setDate(hoje.getDate() - 6);
-            dataInicioInput.value = formatarData(dataInicio);
-            break;
-        case '30dias':
-            dataInicio.setDate(hoje.getDate() - 29);
-            dataInicioInput.value = formatarData(dataInicio);
-            break;
-        case 'total':
-            // Para "Todo Período", limpamos as datas.
-            // A sua API deve ser capaz de interpretar datas vazias como "sem limite".
-            dataInicioInput.value = '2000-01-01'';
-            dataFimInput.value = formatarData(hoje);
-            break;
-    }
-
-    // Dispara o clique no botão principal de filtro para recarregar os dados
-    document.getElementById('btn-filtrar').click();
-});
-
     document.getElementById('btn-exportar-csv').addEventListener('click', () => {
         if (dadosAtuaisDaTabela.length === 0) {
             alert("Não há dados para exportar com os filtros atuais."); return;
