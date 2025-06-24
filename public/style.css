@@ -432,19 +432,3 @@ td input.input-editavel {
 td input.input-editavel:focus {
     border-color: #007bff;
 }
-button, .btn-secundario {
-    display: inline-block;
-    padding: 6px 16px;
-    margin: 4px 2px;
-    font-size: 1em;
-    border: 1px solid #007bff;
-    background: #fff;
-    color: #007bff;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-}
-button:hover, .btn-secundario:hover {
-    background: #007bff;
-    color: #fff;
-}
