@@ -1,4 +1,4 @@
-/* --- Estilos Gerais --- */ Ajuste de colunas OK
+/* --- Estilos Gerais --- */ /* Ajuste de colunas OK */
 :root {
     --cor-primaria: #0056b3;
     --cor-primaria-hover: #004494;
@@ -432,3 +432,5 @@ td input.input-editavel {
 td input.input-editavel:focus {
     border-color: #007bff;
 }
+
+/* O bloco de código problemático que estava aqui foi removido. */
