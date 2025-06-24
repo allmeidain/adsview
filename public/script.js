@@ -180,7 +180,6 @@ function ordenarCampanhasPorColuna(coluna) {
     }
 }
 
-// Função para aplicar os filtros de campanhas e moedas
 function aplicarFiltros() {
     campanhasSelecionadasIds = Array.from(document.querySelectorAll('#checkboxes-campanhas input:checked')).map(cb => cb.value);
     moedasSelecionadas = Array.from(document.querySelectorAll('#checkboxes-moedas input:checked')).map(cb => cb.value);
@@ -194,7 +193,6 @@ function aplicarFiltros() {
     renderizarDashboard(campanhasFiltradas);
 }
 
-// Função para popular os filtros de campanhas e moedas
 function popularFiltro(tipo, campanhas) {
     const container = document.getElementById(`checkboxes-${tipo}`);
     if (!container) return;
@@ -220,44 +218,88 @@ function popularFiltro(tipo, campanhas) {
     });
 }
 
-// Botão "Limpar Filtros" restaura todos os checkboxes marcados
-document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-    if (todasCampanhas.length === 0) return;
-    
-    campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
-    moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
-    
-    popularFiltro('campanhas', todasCampanhas);
-    popularFiltro('moedas', todasCampanhas);
-    
-    aplicarFiltros();
-});
+async function carregarResumo(url) {
+    const container = document.getElementById('resumo-container');
+    container.innerHTML = '<p>Carregando dados...</p>';
+    document.getElementById('header-metrics').innerHTML = '';
 
-// Filtros rápidos só alteram as datas e disparam a busca, sem mexer nos checkboxes
-document.querySelectorAll('#filtros-rapidos button').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const hoje = new Date();
-        let inicio, fim;
-        fim = hoje.toISOString().slice(0, 10);
-        if (btn.dataset.periodo === 'hoje') {
-            inicio = fim;
-        } else if (btn.dataset.periodo === '7d') {
-            const d = new Date(hoje);
-            d.setDate(d.getDate() - 6);
-            inicio = d.toISOString().slice(0, 10);
-        } else if (btn.dataset.periodo === '30d') {
-            const d = new Date(hoje);
-            d.setDate(d.getDate() - 29);
-            inicio = d.toISOString().slice(0, 10);
+    try {
+        const [respostaCampanhas, respostaCotacao, respostaTimestamp] = await Promise.all([
+            fetch(url),
+            fetch('/api/cotacao'),
+            fetch('/api/ultima-atualizacao')
+        ]);
+
+        if (!respostaCampanhas.ok) throw new Error(`Erro na API de campanhas.`);
+        
+        todasCampanhas = await respostaCampanhas.json();
+        cotacaoAtual = await respostaCotacao.json();
+        timestampAtual = await respostaTimestamp.json();
+
+        // --- AJUSTE: garantir que parcela_abs_superior exista mesmo que venha como absoluteTopImpressionPercentage ---
+        todasCampanhas.forEach(c => {
+            if (c.absoluteTopImpressionPercentage !== undefined && c.parcela_abs_superior === undefined) {
+                c.parcela_abs_superior = c.absoluteTopImpressionPercentage;
+            }
+        });
+        // --- FIM DO AJUSTE ---
+
+        // Lógica simplificada: Sempre redefine os filtros ao carregar novos dados
+        campanhasSelecionadasIds = todasCampanhas.map(c => String(c.id));
+        moedasSelecionadas = [...new Set(todasCampanhas.map(c => c.codigo_moeda || 'BRL'))];
+
+        if (!Array.isArray(todasCampanhas) || todasCampanhas.length === 0) {
+            renderizarDashboard([], timestampAtual);
+            popularFiltro('campanhas', []);
+            popularFiltro('moedas', []);
+            return;
         }
-        document.getElementById('data-inicio').value = inicio;
-        document.getElementById('data-fim').value = fim;
-        const url = `/api/resumo?inicio=${inicio}&fim=${fim}`;
-        carregarResumo(url);
-    });
-});
 
-// ...código posterior...
+        popularFiltro('campanhas', todasCampanhas);
+        popularFiltro('moedas', todasCampanhas);
+        aplicarFiltros();
+
+    } catch (erro) {
+        container.innerHTML = `<p>Ocorreu um erro ao carregar o resumo. Verifique o console.</p>`;
+        console.error("Falha ao carregar o resumo:", erro);
+    }
+}
+
+function toggleCheckboxes(tipo) {
+    const checkboxes = document.getElementById(`checkboxes-${tipo}`);
+    if(!checkboxes) return;
+    const outroTipo = tipo === 'campanhas' ? 'moedas' : 'campanhas';
+    const outroCheckbox = document.getElementById(`checkboxes-${outroTipo}`);
+    if (outroCheckbox) {
+        outroCheckbox.style.display = 'none';
+        expanded[outroTipo] = false;
+    }
+    expanded[tipo] = !expanded[tipo];
+    checkboxes.style.display = expanded[tipo] ? "block" : "none";
+}
+
+function exportarParaCSV(headers, dataRows, filename) {
+    let csvContent = headers.join(',') + '\r\n';
+    dataRows.forEach(rowArray => {
+        const row = rowArray.map(field => {
+            let f = String(field === null || field === undefined ? '' : field).replace(/"/g, '""');
+            return `"${f}"`;
+        });
+        csvContent += row.join(',') + '\r\n';
+    });
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
 // Bloco DOMContentLoaded (VERSÃO CORRIGIDA E LIMPA)
 document.addEventListener('DOMContentLoaded', () => {
     const hoje = new Date();
@@ -311,29 +353,4 @@ document.addEventListener('DOMContentLoaded', () => {
             ordenarCampanhasPorColuna(th.dataset.coluna);
         }
     });
-
-    document.querySelectorAll('#filtros-rapidos button').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const hoje = new Date();
-            let inicio, fim;
-            fim = hoje.toISOString().slice(0, 10);
-            if (btn.dataset.periodo === 'hoje') {
-                inicio = fim;
-            } else if (btn.dataset.periodo === '7d') {
-                const d = new Date(hoje);
-                d.setDate(d.getDate() - 6);
-                inicio = d.toISOString().slice(0, 10);
-            } else if (btn.dataset.periodo === '30d') {
-                const d = new Date(hoje);
-                d.setDate(d.getDate() - 29);
-                inicio = d.toISOString().slice(0, 10);
-            }
-            document.getElementById('data-inicio').value = inicio;
-            document.getElementById('data-fim').value = fim;
-            const url = `/api/resumo?inicio=${inicio}&fim=${fim}`;
-            carregarResumo(url);
-        });
-    });
-
-    document.querySelector('#filtros-rapidos button[data-periodo="7d"]').click();
 });
