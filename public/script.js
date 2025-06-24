@@ -353,4 +353,29 @@ document.addEventListener('DOMContentLoaded', () => {
             ordenarCampanhasPorColuna(th.dataset.coluna);
         }
     });
+
+    document.querySelectorAll('#filtros-rapidos button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const hoje = new Date();
+            let inicio, fim;
+            fim = hoje.toISOString().slice(0, 10);
+            if (btn.dataset.periodo === 'hoje') {
+                inicio = fim;
+            } else if (btn.dataset.periodo === '7d') {
+                const d = new Date(hoje);
+                d.setDate(d.getDate() - 6);
+                inicio = d.toISOString().slice(0, 10);
+            } else if (btn.dataset.periodo === '30d') {
+                const d = new Date(hoje);
+                d.setDate(d.getDate() - 29);
+                inicio = d.toISOString().slice(0, 10);
+            }
+            document.getElementById('data-inicio').value = inicio;
+            document.getElementById('data-fim').value = fim;
+            const url = `/api/resumo?inicio=${inicio}&fim=${fim}`;
+            carregarResumo(url);
+        });
+    });
+
+    document.querySelector('#filtros-rapidos button[data-periodo="7d"]').click();
 });
