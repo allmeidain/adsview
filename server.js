@@ -53,7 +53,9 @@ const adminPass = process.env.ADMIN_PASSWORD || 'password';
 users[adminUser] = adminPass;
 const authMiddleware = basicAuth({ users, challenge: true, unauthorizedResponse: 'Acesso não autorizado.' });
 
-app.use(express.json());
+// VERSÃO CORRIGIDA
+app.use(express.json({ limit: '50mb' }));
+
 
 // --- ROTAS PÚBLICAS ---
 app.get('/api/cotacao', async (req, res) => {
